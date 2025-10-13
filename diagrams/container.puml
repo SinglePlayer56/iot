@@ -1,0 +1,72 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+System_Boundary(auth, "Keycloak") {
+    Container_Ext(keycloak, "Keycloak", "OAuth2", "Аутентификация и авторизация")
+    ContainerDb_Ext(keycloak_db, "PostgreSQL", "Реляционная БД", База данных для "Keycloak")
+    Rel(keycloak, keycloak_db, "JDBC (write/read)")
+}
+
+System_Boundary(iotSystem, "IoT Monitoring Platform") {
+    Container(api_gateway, "API Gateway", "Spring Cloud Gateway", "Маршрутизация и авторизация")
+    Container(api_orchestrator, "API Orchestrator", "Spring Boot", "Оркестратор: вызывает event-, device- и command-сервисы")
+    Container(command_service, "Command Service", "Go + gRPC", "Принимает команды по gRPC и отдаёт их устройствам. Работает с отдельной БД PostgreSQL.")
+    Container(device_service, "Device Service", "Spring Boot + ShardingSphere-JDBC", "CRUD API по устройствам. Использует встроенное шардирование через JDBC.")
+    Container(event_service, "Event Service", "Spring Boot", "Чтение событий из Cassandra")
+    Container(redis, "Redis", "In-memory Cache", "Кэширование запросов")
+    Container(events_collector, "Events Collector", "Spring Boot", "Kafka → Cassandra + device-id")
+    Container(device_collector, "Device Collector", "Spring Boot", "Получает device-id сохраняет в PostgreSQL(Devices)")
+    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "DLT → JSON в MinIO")
+    ContainerDb(minio, "MinIO", "Объектное хранилище", "Сохранение ошибок DLT")
+    ContainerDb(cassandra, "Cassandra Cluster", "NoSQL", "Хранение событий")
+    ContainerDb(postgresql_commands, "PostgreSQL (Commands)", "Реляционная БД", "Отдельная база для команд. Используется Go-сервисом.")
+    ContainerDb(postgresql_devices, "PostgreSQL (Devices)", "Шардированная база данных устройств. Синхронная репликация каждого шарда.")
+    ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt / device-id топики")
+    Rel(api_gateway, api_orchestrator, "REST", "JWT")
+    Rel(api_orchestrator, command_service, "gRPC", "Отправка команд")
+    Rel(command_service, postgresql_commands, "JDBC (write/read)")
+    Rel(api_orchestrator, device_service, "REST")
+    Rel(device_service, postgresql_devices, "Shared JDBC (write/read)")
+    Rel(api_orchestrator, event_service, "REST")
+    Rel(event_service, cassandra, "Read: события")
+    Rel(api_orchestrator, redis, "Кэширование")
+    Rel(events_collector, cassandra, "Write: события")
+    Rel(events_collector, kafka, "Consume: events-topic")
+    Rel(events_collector, kafka, "Produce: device-id-topic")
+    Rel(events_collector, kafka, "Produce: dlt-topic")
+    Rel(device_collector, kafka, "Consume: device-id-topic")
+    Rel(failed_events_processor, kafka, "Consume: dlt-topic")
+    Rel(failed_events_processor, minio, "Save: JSON")
+    Rel(api_gateway, keycloak, "OIDC авторизация")
+}
+
+Container_Ext(iot_devices, "IoT Devices", "Встраиваемые устройства", "Отправляют телеметрию и получают команды")
+Rel(iot_devices, command_service, "gRPC", "Получение команд")
+
+
+System_Boundary(bpm, "Camunda") {
+    Container_Ext(camunda, "Camunda BPM", "BPM Engine", "Оркестрация бизнес-процессов")
+    ContainerDb_Ext(camunda_db, "PostgreSQL (Camunda)", "Реляционная БД", "Хранение данных процессов")
+    Rel(camunda, camunda_db, "JDBC (read/write)")
+}
+
+System_Boundary(observability, "Grafana") {
+    Container_Ext(grafana, "Grafana", "UI",  "Дашборды")
+    Container_Ext(prometheus, "Prometheus", "Metrics", "Сбор и хранение метрик")
+    Container_Ext(alloy, "Alloy", "Agent", "Сбор метрик/логов из контейнеров")
+    Container_Ext(tempo, "Tempo", "Traces", "Хранение трейсов")
+    Container_Ext(loki, "Loki", "Logs", "Хранение логов")
+    Rel(grafana, prometheus, "Запрашивает метрики")
+    Rel(grafana, loki, "Запрашивает логи")
+    Rel(grafana, tempo, "Запрашивает трейсы")
+    Rel(alloy, loki, "Отправка логов")
+    Rel(alloy, tempo, "Отправка трейсов")
+    Rel_D(alloy, iotSystem, "Сбор трейсов и логов с контейнеров")
+    Rel_D(prometheus, iotSystem, "Сбор метрик")
+    Rel_D(alloy, auth, "Сбор трейсов и логов с контейнеров")
+    Rel_D(prometheus, auth, "Сбор метрик")
+    Rel_D(alloy, bpm, "Сбор трейсов и логов с контейнеров")
+    Rel_D(prometheus, bpm, "Сбор метрик")
+}
+
+@enduml
