@@ -9,7 +9,8 @@ INFRA_SERVICES ?= postgres_commands postgres_devices postgres_keycloak postgres_
             redis keycloak kafka schema-registry cassandra camunda minio prometheus \
             loki alloy tempo grafana \
             postgres-exporter-commands postgres-exporter-devices \
-            postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter
+            postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
+            redis-exporter
 
 keycloak-disable-ssl:
 	@echo "Авторизация в Keycloak CLI"
