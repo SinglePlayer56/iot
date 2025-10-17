@@ -1,0 +1,19 @@
+@startuml
+actor KafkaBroker
+participant "Kafka Event Consumer" as KEC
+participant "Avro Processor" as AP
+participant "Event Collector Service" as ECS
+participant "Event Collector Repository" as ECR
+participant "Deduplicate Cache" as DDC
+participant "Kafka DeviceId Producer" as KDP
+
+KafkaBroker -> KEC : получение события в Avro (DeviceEvent)
+KEC -> AP : Валидация и десериализация
+AP -> ECS : Обработка десериализованного события
+ECS -> ECR : Сохранение события в БД
+ECS -> DDC : Проверяем публикацию device-id
+DDC --> ECS : Уже публиковали (не публикуем)
+ECS -> DDC : Добавляем в кеш
+ECS -> KDP : Отдаём на публикацию device-id
+KDP -> KafkaBroker : Публикуем device-id в device-id-topic
+@enduml

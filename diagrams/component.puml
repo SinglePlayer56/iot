@@ -1,0 +1,28 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(event_collector_service, "Event Collector Service") {
+    Component(event_service, "Event Collector Service", "Обработка событий")
+    Component(event_repo, "Event Collector Repository", "DataStax Java Driver", "Запись событий в Cassandra")
+    Component(dedup_cache, "Deduplicate Cache", "Проверка был ли уже опубликован device-id")
+    Component(kafka_event_consumer, "Kafka Event Consumer", "Spring Kafka", "Чтение событий из топика events")
+    Component(avro_processor, "Avro Processor", "Schema Registry", "Валидация/десериализация сообщений по Avro схеме")
+    Component(kafka_device_id_producer, "Kafka DeviceId Producer", "Spring Kafka", "Отправка уникальных device-id в device-id-topic")
+
+    Rel(kafka_event_consumer, avro_processor, "Передает payload")
+    Rel(avro_processor, event_service, "Возвращает обработанное сообщение сообщение")
+    Rel(event_service, event_repo, "Сохраняет событие")
+    Rel(event_service, dedup_cache, "Проверка уникальности публикации device-id")
+    Rel(dedup_cache, kafka_device_id_producer, "Если device-id не публиковался, публикуем")
+}
+
+ContainerDb(cassandra, "Cassandra Cluster", "NoSQL", "Хранение событий")
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt / device-id топики")
+Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+
+Rel(event_repo, cassandra, "Сохранение евентов", "CQL")
+Rel(avro_processor, schema_registry, "Получение/валидация схем", "REST")
+Rel(kafka_event_consumer, kafka, "Вычитывание событий из топика events")
+Rel(kafka_device_id_producer, kafka, "Публикация уникальных device-id в топик device-id-topic")
+
+@enduml
