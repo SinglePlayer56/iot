@@ -12,8 +12,14 @@ KEC -> AP : Валидация и десериализация
 AP -> ECS : Обработка десериализованного события
 ECS -> ECR : Сохранение события в БД
 ECS -> DDC : Проверяем публикацию device-id
-DDC --> ECS : Уже публиковали (не публикуем)
-ECS -> DDC : Добавляем в кеш
-ECS -> KDP : Отдаём на публикацию device-id
-KDP -> KafkaBroker : Публикуем device-id в device-id-topic
+
+alt Уже публиковали
+    DDC --> ECS : Публикация была
+    ECS -> ECS: Пропускаем отправку
+else Не публиковали
+    DDC --> ECS : Публикации не было
+    ECS -> DDC : Добавляем в кеш
+    ECS -> KDP : Отдаём на публикацию device-id
+    KDP -> KafkaBroker : Публикуем device-id в device-id-topic
+end
 @enduml
