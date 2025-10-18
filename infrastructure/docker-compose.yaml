@@ -182,14 +182,18 @@ services:
     container_name: cassandra
     ports:
       - "9042:9042"
+    environment:
+      JVM_EXTRA_OPTS: -javaagent:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar=9500:/opt/jmx/cassandra-jmx.yml
     networks:
       - iot_network
     volumes:
       - cassandra-data:/var/lib/cassandra
+      - ${PROJECT_DIR:-.}/monitoring/prometheus/jmx/jmx_prometheus_javaagent-1.5.0.jar:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar:ro
+      - ${PROJECT_DIR:-.}/monitoring/cassandra/cassandra-jmx.yml:/opt/jmx/cassandra-jmx.yml:ro
     healthcheck:
       test: [ "CMD-SHELL", "nodetool status | grep -q 'UN '" ]
       interval: 10s
-      retries: 5
+      retries: 10
 
   camunda:
     image: camunda/camunda-bpm-platform:7.24.0
