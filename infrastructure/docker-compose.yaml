@@ -165,14 +165,39 @@ services:
         condition: service_healthy
     volumes:
       - schema_registry_data:/etc/schema-registry
+      - ${PROJECT_DIR:-.}/monitoring/schema-registry/schema-registry-jmx.yml:/opt/jmx/schema-registry-jmx.yml:ro
+      - ${PROJECT_DIR:-.}/monitoring/prometheus/jmx/jmx_prometheus_javaagent-1.5.0.jar:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar:ro
     environment:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
       SCHEMA_REGISTRY_HOST_NAME: ${SCHEMA_REGISTRY_HOST_NAME}
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_MIN_INSYNC_REPLICAS: 1
+      SCHEMA_REGISTRY_OPTS: -javaagent:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar=9404:/opt/jmx/schema-registry-jmx.yml
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8081/subjects" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8070:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - iot_network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -1,0 +1,46 @@
+startDelaySeconds: 0
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+ssl: false
+
+rules:
+  - pattern: 'kafka.schema.registry<type=metrics, name=request-count><>Count'
+    name: schemaregistry_requests_total
+    type: COUNTER
+
+  - pattern: 'kafka.schema.registry<type=avro-schemas-created><>avro-schemas-created'
+    name: schemaregistry_avro_schemas_created_total
+    type: COUNTER
+
+  - pattern: 'kafka.schema.registry<type=jetty-metrics><>connections-active'
+    name: schemaregistry_jetty_connections_active
+    type: GAUGE
+
+  - pattern: 'kafka.schema.registry<type=registered-count><>registered-count'
+    name: schemaregistry_registered_count
+    type: GAUGE
+
+  - pattern: 'kafka.schema.registry<type=jetty-metrics><>request-rate'
+    name: schemaregistry_jetty_request_rate
+    type: GAUGE
+
+  - pattern: 'kafka.schema.registry<type=jersey-metrics><>request-latency-(95|99)'
+    name: schemaregistry_jersey_request_latency
+    labels:
+      p: "$1"
+    type: GAUGE
+
+  - pattern: 'org.eclipse.jetty.server.handler<type=statisticshandler, id=0><>responses(1xx|2xx|3xx|4xx|5xx)'
+    name: schemaregistry_jetty_responses_total
+    labels:
+      code: "$1"
+    type: COUNTER
+
+  - pattern: 'java.lang<type=Runtime><>Uptime'
+    name: jvm_uptime_seconds
+    type: GAUGE
+    valueFactor: 0.001
+
+  - pattern: 'java.lang<type=Threading><>ThreadCount'
+    name: jvm_thread_count
+    type: GAUGE
