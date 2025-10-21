@@ -1,0 +1,43 @@
+server:
+  port: 8200
+
+spring:
+  application:
+    name: event-collector
+
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost}:9094
+    properties:
+      schema.registry.url: http://${SCHEMA_REGISTRY_HOST:localhost}:8081
+      specific.avro.reader: true
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        auto.register.schemas: false
+        acks: all
+        enable.idempotence: true
+
+    consumer:
+      group-id: device-events-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+
+  cassandra:
+    contact-points: ${CASSANDRA_HOST:localhost}
+    port: 9042
+    keyspace-name: iot_events
+    local-datacenter: datacenter1
+    schema-action: none
+
+  flyway:
+    enabled: true
+    url: jdbc:cassandra://${CASSANDRA_HOST:localhost}:9042?localdatacenter=datacenter1
+    driver-class-name: com.ing.data.cassandra.jdbc.CassandraDriver
+    locations: classpath:db/migration
+    sql-migration-suffixes: cql
+    schemas: iot_events
+    default-schema: iot_events
+    create-schemas: true
