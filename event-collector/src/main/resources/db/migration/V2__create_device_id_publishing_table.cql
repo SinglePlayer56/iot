@@ -1,5 +1,5 @@
-CREATE TABLE IF NOT EXISTS iot_events.published_device_ids
+CREATE TABLE IF NOT EXISTS iot_events.device_id_publication
 (
     device_id    text PRIMARY KEY,
-    published_at timestamp
+    timestamp bigint
 );
