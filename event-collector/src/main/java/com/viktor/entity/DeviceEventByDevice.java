@@ -1,11 +1,17 @@
 package com.viktor.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
 import org.springframework.data.cassandra.core.mapping.Table;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Table("device_events_by_device")
 public class DeviceEventByDevice {
 

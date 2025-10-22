@@ -2,13 +2,11 @@ package com.viktor.service.cache;
 
 import com.datastax.oss.driver.shaded.guava.common.hash.BloomFilter;
 import com.datastax.oss.driver.shaded.guava.common.hash.Funnels;
-import com.viktor.entity.DeviceIdPublication;
 import com.viktor.repository.DeviceIdPublicationRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.cassandra.core.query.CassandraPageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.Charset;
@@ -17,6 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeduplicateCache {
 
     private final DeviceIdPublicationRepository deviceIdPublicationRepository;
@@ -25,7 +24,7 @@ public class DeduplicateCache {
 
     private BloomFilter<String> filter;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     private void init() {
         filter = BloomFilter.create(
                 Funnels.stringFunnel(Charset.defaultCharset()),
@@ -37,16 +36,10 @@ public class DeduplicateCache {
     }
 
     private void initPublishedDeviceId(BloomFilter<String> filter) {
-        Pageable pageable = CassandraPageRequest.first(10_000);
-        Slice<DeviceIdPublication> slice;
-
-        do {
-            slice = deviceIdPublicationRepository.findAll(pageable);
-            slice.forEach(entity -> filter.put(entity.getDeviceId()));
-            if (slice.hasNext()) {
-                pageable = slice.nextPageable();
-            }
-        } while (slice.hasNext());
+        deviceIdPublicationRepository.findAll()
+                .doOnNext(entity -> filter.put(entity.getDeviceId()))
+                .doOnComplete(() -> log.info("All device IDs loaded into Bloom filter"))
+                .blockLast();
     }
 
     public void add(String deviceId) {

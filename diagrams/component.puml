@@ -9,6 +9,7 @@ Container_Boundary(event_collector_service, "Event Collector Service") {
     Component(kafka_device_id_producer, "Kafka DeviceId Producer", "Spring Kafka", "Отправка уникальных device-id в device-id-topic")
     Component(device_id_piblication_service, "Device Id Publication Service", "Обработка device-id")
     Component(device_id_publication_repo, "Device Id Publication Repository", "DataStax Java Driver", "Запись опубликованных device-id в Cassandra")
+    Component(configs, "Configs", "Конфигурации")
 
     Rel(kafka_event_consumer, event_service, "Передает десериализованное сообщение")
     Rel(event_service, event_repo, "Сохраняет событие")

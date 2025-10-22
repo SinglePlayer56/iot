@@ -7,7 +7,7 @@ import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
 import org.springframework.data.cassandra.core.mapping.Table;
 
-@Table("published_device_ids")
+@Table("device_id_publication")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

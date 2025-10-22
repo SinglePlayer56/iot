@@ -6,9 +6,7 @@ import com.viktor.repository.DeviceIdPublicationRepository;
 import com.viktor.service.cache.DeduplicateCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Objects;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -19,16 +17,14 @@ public class DeviceIdPublicationServiceImpl implements DeviceIdPublicationServic
     private final KafkaDeviceIdProducer kafkaDeviceIdProducer;
 
     @Override
-    @Transactional
-    public void processDeviceId(String deviceId) {
-        var publishedDeviceId = new DeviceIdPublication(deviceId, System.currentTimeMillis());
-        if (!deduplicateCache.contains(publishedDeviceId.getDeviceId())) {
-            kafkaDeviceIdProducer.send(deviceId).whenComplete((_, ex) -> {
-                if (Objects.isNull(ex)) {
-                    deviceIdPublicationRepository.save(publishedDeviceId);
-                    deduplicateCache.add(deviceId);
-                }
-            });
+    public Mono<Void> processDeviceId(String deviceId) {
+        if (deduplicateCache.contains(deviceId)) {
+            return Mono.empty();
         }
+
+        return kafkaDeviceIdProducer.send(deviceId)
+                .then(deviceIdPublicationRepository.save(new DeviceIdPublication(deviceId, System.currentTimeMillis())))
+                .doOnSuccess(_ -> deduplicateCache.add(deviceId))
+                .then();
     }
 }

@@ -7,7 +7,10 @@ import com.viktor.service.device_id_publication.DeviceIdPublicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,19 +21,24 @@ public class EventCollectorServiceImpl implements EventCollectorService {
     private final DeviceIdPublicationService deviceIdPublicationService;
 
     @Override
-    @Transactional
-    public void processEvent(DeviceEvent deviceEvent) {
-        saveEvent(deviceEvent);
-        deviceIdPublicationService.processDeviceId(deviceEvent.getDeviceId());
+    public Mono<Void> processEvents(List<DeviceEvent> events) {
+        return Flux.fromIterable(events)
+                .flatMap(this::saveEvent)
+                .thenMany(Flux.fromIterable(events)
+                        .map(DeviceEvent::getDeviceId)
+                        .distinct()
+                        .flatMap(deviceIdPublicationService::processDeviceId))
+                .then();
     }
 
-    private void saveEvent(DeviceEvent deviceEvent) {
-        DeviceEventByDevice event = new DeviceEventByDevice();
-        event.setDeviceId(deviceEvent.getDeviceId());
-        event.setEventId(deviceEvent.getEventId());
-        event.setTimestamp(deviceEvent.getTimestamp());
-        event.setType(deviceEvent.getType());
-        event.setPayload(deviceEvent.getPayload());
-        eventCollectorRepository.save(event);
+    private Mono<DeviceEventByDevice> saveEvent(DeviceEvent deviceEvent) {
+        DeviceEventByDevice event = DeviceEventByDevice.builder()
+                .deviceId(deviceEvent.getDeviceId())
+                .eventId(deviceEvent.getEventId())
+                .timestamp(deviceEvent.getTimestamp())
+                .type(deviceEvent.getType())
+                .payload(deviceEvent.getPayload())
+                .build();
+        return eventCollectorRepository.save(event);
     }
 }

@@ -36,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-data-cassandra")
+    implementation("org.springframework.boot:spring-boot-starter-data-cassandra-reactive")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.kafka:spring-kafka")
 
@@ -46,7 +46,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core:${versions["flyway"]}")
     implementation("org.flywaydb:flyway-database-cassandra:${versions["flyway"]}")
     implementation("com.ing.data:cassandra-jdbc-wrapper:${versions["jdbcCassandra"]}")
-    
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 

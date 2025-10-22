@@ -11,6 +11,11 @@ spring:
       schema.registry.url: http://${SCHEMA_REGISTRY_HOST:localhost}:8081
       specific.avro.reader: true
 
+    listener:
+      type: batch
+      ack-mode: manual
+      poll-timeout: 1000
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
@@ -24,6 +29,8 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      enable-auto-commit: false
+      max-poll-records: 50
 
   cassandra:
     contact-points: ${CASSANDRA_HOST:localhost}

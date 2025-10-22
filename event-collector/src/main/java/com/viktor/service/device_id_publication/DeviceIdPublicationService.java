@@ -1,6 +1,8 @@
 package com.viktor.service.device_id_publication;
 
+import reactor.core.publisher.Mono;
+
 public interface DeviceIdPublicationService {
 
-    void processDeviceId(String deviceId);
+    Mono<Void> processDeviceId(String deviceId);
 }
