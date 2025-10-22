@@ -1,9 +1,8 @@
 val versions = mapOf(
     "avroSerializer" to "7.7.5",
-    "schemaRegistryClient" to "7.7.5",
     "flyway" to "11.14.1",
     "jdbcCassandra" to "4.16.0",
-    "guava" to "33.5.0"
+    "opentelemetrySpringBootVersion" to "2.6.0"
 )
 
 plugins {
@@ -49,6 +48,12 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
+
+    implementation ("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation ("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
