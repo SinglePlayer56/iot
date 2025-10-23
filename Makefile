@@ -5,12 +5,17 @@ DOCKER_COMPOSE = docker-compose
 ENV_FILE ?= .env
 COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 
-INFRA_SERVICES ?= postgres_commands postgres_devices postgres_keycloak postgres_camunda \
-            redis keycloak kafka schema-registry cassandra camunda minio prometheus \
-            loki alloy tempo grafana \
+MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
+
+INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_devices postgres_keycloak postgres_camunda \
+            redis keycloak kafka schema-registry cassandra camunda minio \
             postgres-exporter-commands postgres-exporter-devices \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
             redis-exporter
+
+EVENT_COLLECTOR_SERVICES ?= event-collector cassandra kafka schema-registry kafka-ui
+
+EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
 
 keycloak-disable-ssl:
 	@echo "Авторизация в Keycloak CLI"
@@ -47,3 +52,27 @@ infra-stop-remove:
 
 ps:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
+
+event-collector-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES)
+
+event-collector-start-build:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) --build
+
+event-collector-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES)
+
+event-collector-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(EVENT_COLLECTOR_SERVICES)
+
+event-collector-monitoring-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
+
+event-collector-monitoring-start-build:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING) --build
+
+event-collector-monitoring-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
+
+event-collector-monitoring-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
