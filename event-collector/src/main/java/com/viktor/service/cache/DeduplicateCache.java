@@ -22,20 +22,14 @@ public class DeduplicateCache {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private BloomFilter<String> filter;
+    private final BloomFilter<String> filter = BloomFilter.create(
+            Funnels.stringFunnel(Charset.defaultCharset()),
+            1_000_000,
+            0.01
+    );
 
     @EventListener(ApplicationReadyEvent.class)
-    private void init() {
-        filter = BloomFilter.create(
-                Funnels.stringFunnel(Charset.defaultCharset()),
-                1_000_000,
-                0.01
-        );
-
-        initPublishedDeviceId(filter);
-    }
-
-    private void initPublishedDeviceId(BloomFilter<String> filter) {
+    public void initializeCacheFromDatabase() {
         deviceIdPublicationRepository.findAll()
                 .doOnNext(entity -> filter.put(entity.getDeviceId()))
                 .doOnComplete(() -> log.info("All device IDs loaded into Bloom filter"))

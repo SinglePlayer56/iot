@@ -2,7 +2,8 @@ val versions = mapOf(
     "avroSerializer" to "7.7.5",
     "flyway" to "11.14.1",
     "jdbcCassandra" to "4.16.0",
-    "opentelemetrySpringBootVersion" to "2.6.0"
+    "opentelemetrySpringBootVersion" to "2.6.0",
+    "testContainer" to "1.21.3"
 )
 
 plugins {
@@ -52,12 +53,17 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
 
-    implementation ("io.opentelemetry:opentelemetry-exporter-otlp")
-    implementation ("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:cassandra:${versions["testContainer"]}")
+    testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")
 }
 
 tasks.withType<Test> {
