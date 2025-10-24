@@ -479,8 +479,6 @@ services:
     ports:
       - "8200:8200"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      OTEL_SERVICE_NAME: event-producer
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_METRICS_EXPORTER: none
