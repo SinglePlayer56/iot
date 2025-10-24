@@ -3,7 +3,8 @@ val versions = mapOf(
     "flyway" to "11.14.1",
     "jdbcCassandra" to "4.16.0",
     "opentelemetrySpringBootVersion" to "2.6.0",
-    "testContainer" to "1.21.3"
+    "testContainer" to "1.21.3",
+    "logstashVersion" to "7.4"
 )
 
 plugins {
@@ -55,6 +56,8 @@ dependencies {
 
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
+
+    implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
