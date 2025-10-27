@@ -44,12 +44,14 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      write-topic: device-id-topic
       properties:
         auto.register.schemas: false
         acks: all
         enable.idempotence: true
 
     consumer:
+      read-topic: events
       group-id: device-events-consumer
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer

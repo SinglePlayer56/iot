@@ -15,7 +15,7 @@ public class KafkaEventConsumer {
 
     private final EventCollectorService eventCollectorService;
 
-    @KafkaListener(topics = "events", groupId = "device-events-consumer")
+    @KafkaListener(topics = "${spring.kafka.consumer.read-topic}", groupId = "${spring.kafka.consumer.group-id}")
     public void listen(List<DeviceEvent> deviceEvent, Acknowledgment ack) {
         eventCollectorService.processEvents(deviceEvent)
                 .doOnSuccess(_ -> ack.acknowledge())
