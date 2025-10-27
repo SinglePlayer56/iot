@@ -18,11 +18,11 @@
   "name": "DeviceEvent",
   "namespace": "com.viktor.avro",
   "fields": [
-    { "name": "eventId", "type": "string" },
-    { "name": "deviceId", "type": "string" },
+    { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
+    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } },
     { "name": "timestamp", "type": "long" },
-    { "name": "type", "type": "string" },
-    { "name": "payload", "type": "string" }
+    { "name": "type", "type":{ "type": "string", "avro.java.string": "String" } },
+    { "name": "payload", "type": { "type": "string", "avro.java.string": "String" } }
   ]
 }
 ```
@@ -35,7 +35,7 @@
   "name": "DeviceId",
   "namespace": "com.viktor.avro",
   "fields": [
-    { "name": "deviceId", "type": "string" }
+    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } }
   ]
 }
 ```
