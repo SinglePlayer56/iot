@@ -128,6 +128,7 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
+      - "9094:9094"
     networks:
       - iot_network
     environment:
@@ -165,14 +166,39 @@ services:
         condition: service_healthy
     volumes:
       - schema_registry_data:/etc/schema-registry
+      - ${PROJECT_DIR:-.}/monitoring/schema-registry/schema-registry-jmx.yml:/opt/jmx/schema-registry-jmx.yml:ro
+      - ${PROJECT_DIR:-.}/monitoring/prometheus/jmx/jmx_prometheus_javaagent-1.5.0.jar:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar:ro
     environment:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
       SCHEMA_REGISTRY_HOST_NAME: ${SCHEMA_REGISTRY_HOST_NAME}
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_MIN_INSYNC_REPLICAS: 1
+      SCHEMA_REGISTRY_OPTS: -javaagent:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar=9404:/opt/jmx/schema-registry-jmx.yml
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8081/subjects" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8070:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - iot_network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -182,14 +208,20 @@ services:
     container_name: cassandra
     ports:
       - "9042:9042"
+    environment:
+      JVM_EXTRA_OPTS: -javaagent:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar=9500:/opt/jmx/cassandra-jmx.yml
     networks:
       - iot_network
     volumes:
       - cassandra-data:/var/lib/cassandra
+      - ${PROJECT_DIR:-.}/monitoring/prometheus/jmx/jmx_prometheus_javaagent-1.5.0.jar:/opt/jmx/jmx_prometheus_javaagent-1.5.0.jar:ro
+      - ${PROJECT_DIR:-.}/monitoring/cassandra/cassandra-jmx.yml:/opt/jmx/cassandra-jmx.yml:ro
     healthcheck:
-      test: [ "CMD-SHELL", "nodetool status | grep -q 'UN '" ]
+      test: [ "CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' localhost 9042 > /dev/null 2>&1" ]
       interval: 10s
-      retries: 5
+      timeout: 5s
+      retries: 15
+      start_period: 40s
 
   camunda:
     image: camunda/camunda-bpm-platform:7.24.0
@@ -438,6 +470,34 @@ services:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9121/metrics" ]
       interval: 10s
       retries: 5
+
+  event-collector:
+    image: event-collector:latest
+    container_name: event-collector
+    build:
+      context: ../event-collector
+    ports:
+      - "8200:8200"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
+      KAFKA_ADDRESS: kafka:9092
+      SCHEMA_REGISTRY_ADDRESS: schema-registry:8081
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+    networks:
+      - iot_network
 
 networks:
   iot_network:

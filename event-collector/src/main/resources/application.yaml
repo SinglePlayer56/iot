@@ -1,0 +1,77 @@
+server:
+  port: 8200
+
+management:
+  server:
+    port: 8200
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name:my-app}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+
+spring:
+  application:
+    name: event-collector
+
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDRESS:localhost:9092}
+    properties:
+      schema.registry.url: http://${SCHEMA_REGISTRY_ADDRESS:localhost:8081}
+      specific.avro.reader: true
+
+    listener:
+      type: batch
+      ack-mode: manual
+      poll-timeout: 1000
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      write-topic: device-id-topic
+      properties:
+        auto.register.schemas: false
+        acks: all
+        enable.idempotence: true
+
+    consumer:
+      read-topic: events
+      group-id: device-events-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      enable-auto-commit: false
+      max-poll-records: 50
+
+  cassandra:
+    contact-points: ${CASSANDRA_HOST:localhost}
+    port: ${CASSANDRA_PORT:9042}
+    keyspace-name: iot_events
+    local-datacenter: datacenter1
+    schema-action: none
+
+  flyway:
+    enabled: true
+    url: jdbc:cassandra://${CASSANDRA_HOST:localhost}:${CASSANDRA_PORT:9042}/iot_events?localdatacenter=datacenter1
+    driver-class-name: com.ing.data.cassandra.jdbc.CassandraDriver
+    locations: classpath:db/migration
+    sql-migration-suffixes: cql
+    schemas: iot_events
+    default-schema: iot_events
+    create-schemas: true

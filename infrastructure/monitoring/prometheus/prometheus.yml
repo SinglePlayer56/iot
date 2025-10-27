@@ -57,7 +57,21 @@ scrape_configs:
     static_configs:
       - targets: [ 'redis-exporter:9121' ]
 
+  - job_name: cassandra
+    static_configs:
+      - targets: [ 'cassandra:9500' ]
+
   - job_name: minio
     metrics_path: /minio/v2/metrics/cluster
     static_configs:
       - targets: [ 'minio:9000' ]
+
+  - job_name: schema-registry
+    static_configs:
+      - targets: [ 'schema-registry:9404' ]
+
+  - job_name: event-collector
+    scrape_interval: 10s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'event-collector:8200' ]

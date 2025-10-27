@@ -13,9 +13,21 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     ContainerDb(cassandra, "Cassandra Cluster", "NoSQL", "Хранение событий")
     ContainerDb(postgresql_commands, "PostgreSQL (Commands)", "Реляционная БД", "Отдельная база для команд. Используется Go-сервисом.")
     ContainerDb(postgresql_devices, "PostgreSQL (Devices)", "Шардированная база данных устройств. Синхронная репликация каждого шарда.")
-    ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt / device-id топики")
-    Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+    Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
+
+    Boundary(kafka_stack, "Kafka Stack") {
+        ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt / device-id топики")
+        Container(kafka_ui, "Kafka UI", "UI", "Визуализация работы с Kafka")
+        Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+    }
+
     Rel(schema_registry, kafka, "KafkaStore (хранилище схем)")
+    Rel(event_collector_service, kafka, "Читает из топика events", "Avro")
+    Rel(event_collector_service, kafka, "Публикует уникальные device_id в топик device-id-topic", "Avro")
+    Rel(event_collector_service, cassandra, "Сохраняет события вычитанные из топика events")
+    Rel(event_collector_service, schema_registry, "Валидация Avro сообщений / Публикация схем Avro", "REST")
+    Rel(kafka_ui, kafka, "Подключается для чтения метаданных и просмотра топиков")
+    Rel(kafka_ui, schema_registry, "Читает схемы сообщений")
 }
 
 System_Boundary(bpm, "Camunda") {
@@ -50,6 +62,9 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, pg_ex_keycloak, "Собирает метрики")
     Rel(prometheus, redis_ex, "Собирает метрики")
     Rel(prometheus, minio, "Собирает метрики")
+    Rel(prometheus, event_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, cassandra, "Читает JMX")
+    Rel(prometheus, schema_registry, "Читает JMX")
 
     Rel(alloy, auth, "Сбор трейсов и логов с контейнеров")
     Rel(prometheus, keycloak, "Собирает метрики")

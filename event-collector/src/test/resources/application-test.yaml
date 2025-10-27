@@ -1,0 +1,10 @@
+spring:
+  kafka:
+    topic
+  flyway:
+    enabled: false
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false

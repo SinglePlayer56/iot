@@ -1,0 +1,27 @@
+@startuml
+actor KafkaBroker
+participant "Kafka Event Consumer" as KEC
+participant "Event Collector Service" as ECS
+participant "Event Collector Repository" as ECR
+participant "Device Id Publication Service" as DPS
+participant "Device Id Publication Repository" as DPR
+participant "Deduplicate Cache" as DDC
+participant "Kafka DeviceId Producer" as KDP
+
+KafkaBroker -> KEC : получение события в Avro (DeviceEvent)
+KEC -> ECS : Обработка десериализованного события
+ECS -> ECR : Сохранение события в БД
+ECS -> DPS : Передаю device-id события
+DPS -> DDC : Проверяем публикацию device-id
+
+alt Уже публиковали
+    DDC --> DPS : Публикация была
+    DPS -> DPS: Пропускаем сохранение и отправку
+else Не публиковали
+    DDC --> DPS : Публикации не было
+    DPS -> KDP : Отдаём на публикацию device-id
+    KDP -> KafkaBroker : Публикуем device-id в device-id-topic
+    DPS -> DPR : Сохраняем опубликованный device-id в БД
+    DPS -> DDC : Добавляем в кеш
+end
+@enduml
