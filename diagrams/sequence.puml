@@ -1,0 +1,33 @@
+@startuml
+actor KafkaBroker
+participant "Kafka Device Consumer" as KDC
+participant "Device Collector Service" as DCS
+participant "Device Collector Repository" as DCR
+participant "Metrics Service" as MS
+participant "Error Handler" as EH
+participant "Sharding Sphere Proxy" as SSP
+participant "Shard N" as S
+
+loop N попыток
+    DCS -> DCR : Сохранение события
+    DCR -> SSP: Запрос на прокси
+    SSP -> S : Маршрутизация запроса на нужный шард
+    alt Успешно
+        S --> SSP : OK
+        SSP --> DCR : OK
+        DCR --> DCS : OK
+        DCS -> MS : Инкремент успешного сохранения(через аспект)
+        break
+    else Ошибка
+        S --> SSP : Ошибка
+        SSP --> DCR : Ошибка
+        DCR --> DCS : Ошибка
+    end
+end
+
+alt Все попытки неудачны
+    DCS -> EH : Ошибка сохранения
+    EH -> MS : Инкремент ошибок (через аспект))
+    EH -> KafkaBroker : Отправка сообщения в DLT
+end
+@enduml

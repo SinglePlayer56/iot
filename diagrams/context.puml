@@ -5,6 +5,7 @@ System(System_IoT, "IoT Microservice Platform", "Микросервисная Io
 System(keycloak, "Keycloak", "Сервер аутентификации (SSO)")
 System(grafana, "Grafana", "Мониторинг и дашборды")
 System(camunda, "Camunda", "Платформа оркестрации процессов (BPM)")
+System(nexus_repo, "Nexus Repository", "Репозиторий")
 Rel(engineer, System_IoT, "Управление и мониторинг платформы", "HTTP/REST, UI")
 Rel(engineer, grafana, "Просмотр метрик и логов", "HTTP (dashboards)")
 Rel(System_IoT, keycloak, "Запрос токена / проверка JWT", "OIDC")
@@ -12,4 +13,6 @@ Rel(System_IoT, grafana, "Экспорт метрик и логов", "Prometheu
 Rel(camunda, grafana, "Экспорт метрик и логов", "Prometheus, Loki, Tempo")
 Rel(keycloak, grafana, "Экспорт метрик и логов", "Prometheus, Loki, Tempo")
 Rel(engineer, camunda, "Tasklist/Cockpit: управление задачами/мониторинг", "Web UI")
+Rel(engineer, nexus_repo, "Публикация и получение артефактов")
+Rel(nexus_repo, System_IoT , "Поставляет общие артефакты при сборке", "Gradle")
 @enduml
