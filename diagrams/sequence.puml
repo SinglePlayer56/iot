@@ -17,6 +17,8 @@ loop N попыток
         SSP --> DCR : OK
         DCR --> DCS : OK
         DCS -> MS : Инкремент успешного сохранения(через аспект)
+        DCS --> KDC : OK
+        KDC -> KafkaBroker : Отправка ACK
         break
     else Ошибка
         S --> SSP : Ошибка
@@ -27,7 +29,10 @@ end
 
 alt Все попытки неудачны
     DCS -> EH : Ошибка сохранения
-    EH -> MS : Инкремент ошибок (через аспект))
+    EH -> MS : Инкремент ошибок (через аспект)
     EH -> KafkaBroker : Отправка сообщения в DLT
+    KafkaBroker --> EH : Подтверждение (DLT ACK)
+    EH --> KDC : OK
+    KDC -> KafkaBroker : Отправка ACK
 end
 @enduml

@@ -45,12 +45,6 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(device_collector_service, sharding_spere_proxy, "Записывает и читает данные", "JDBC")
 }
 
-System_Boundary(bpm, "Camunda") {
-    Container(camunda, "Camunda BPM", "BPM Engine", "Оркестрация бизнес-процессов")
-    ContainerDb(camunda_db, "PostgreSQL (Camunda)", "Реляционная БД", "Хранение данных процессов")
-    Rel(camunda, camunda_db, "JDBC (read/write)")
-}
-
 System_Boundary(observability, "Grafana") {
     Container(grafana, "Grafana", "UI",  "Дашборды")
     Container(prometheus, "Prometheus", "Metrics", "Сбор и хранение метрик")
@@ -61,7 +55,6 @@ System_Boundary(observability, "Grafana") {
     Container(pg_ex_devices_shard2, "Postgres Exporter Device Collector Shard 2", "Сбор и подготовка метрик")
     Container(pg_ex_commands, "Postgres Exporter Commands", "Сбор и подготовка метрик")
     Container(pg_ex_keycloak, "Postgres Exporter Keycloak", "Сбор и подготовка метрик")
-    Container(pg_ex_camunda, "Postgres Exporter Camunda", "Сбор и подготовка метрик")
     Container(kafka_ex, "Kafka exporter", "Сбор и подготовка метрик")
     Container(redis_ex, "Redis exporter", "Сбор и подготовка метрик")
 
@@ -73,7 +66,6 @@ System_Boundary(observability, "Grafana") {
 
     Rel(prometheus, pg_ex_devices_shard1, "Собирает метрики")
     Rel(prometheus, pg_ex_devices_shard2, "Собирает метрики")
-    Rel(prometheus, pg_ex_camunda, "Собирает метрики")
     Rel(prometheus, pg_ex_commands, "Собирает метрики")
     Rel(prometheus, kafka_ex, "Собирает метрики")
     Rel(prometheus, pg_ex_keycloak, "Собирает метрики")
@@ -88,9 +80,6 @@ System_Boundary(observability, "Grafana") {
     Rel(alloy, auth, "Сбор трейсов и логов с контейнеров")
     Rel(prometheus, keycloak, "Собирает метрики")
     Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
-
-    Rel(alloy, bpm, "Сбор трейсов и логов с контейнеров")
-    Rel(pg_ex_camunda, camunda_db, "Собирает и подготавливает метрики")
 
     Rel(alloy, iotSystem, "Сбор трейсов и логов с контейнеров")
     Rel(pg_ex_devices_shard1, shard_device_collector_1, "Собирает и подготавливает метрики")
