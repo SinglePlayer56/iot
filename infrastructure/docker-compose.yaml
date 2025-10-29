@@ -476,6 +476,11 @@ services:
     container_name: event-collector
     build:
       context: ../event-collector
+      dockerfile: ../event-collector/Dockerfile
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
     ports:
       - "8200:8200"
     environment:
@@ -499,6 +504,41 @@ services:
     networks:
       - iot_network
 
+  nexus:
+    image: sonatype/nexus3:3.85.0
+    container_name: nexus
+    ports:
+      - "8085:8081"
+    networks:
+      - iot_network
+    volumes:
+      - nexus-data:/nexus-data
+    environment:
+      NEXUS_SECURITY_INITIAL_PASSWORD: ${NEXUS_PASSWORD}
+      NEXUS_SECURITY_RANDOMPASSWORD: false
+      INSTALL4J_ADD_VM_PARAMS: -Xms256m -Xmx1024m -XX:MaxDirectMemorySize=2g
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/service/rest/v1/status" ]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  avro-shared-library-publisher:
+    build:
+      context: ../avro-shared-library
+      dockerfile: Dockerfile
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      - iot_network
+    restart: "no"
+
 networks:
   iot_network:
     driver: bridge
@@ -513,3 +553,4 @@ volumes:
   postgres_camunda_data:
   grafana-storage:
   tempo_data:
+  nexus-data:

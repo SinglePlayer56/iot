@@ -2,6 +2,7 @@ include $(wildcard .env)
 
 KEYCLOAK_CONTAINER := keycloak
 DOCKER_COMPOSE = docker-compose
+NEXUS_URL = http://localhost:8085
 ENV_FILE ?= .env
 COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 
@@ -17,6 +18,25 @@ EVENT_COLLECTOR_SERVICES ?= event-collector cassandra kafka schema-registry kafk
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
 
+SHARED_ARTIFACTS ?= avro-shared-library-publisher
+
+ifeq ($(OS),Windows_NT)
+WAIT_CMD = powershell -Command "while ($$true) { \
+		try { \
+			Invoke-WebRequest -UseBasicParsing -Uri $(NEXUS_URL)/service/rest/v1/status -ErrorAction Stop; \
+			break \
+		} \
+		catch { \
+			Write-Host 'Nexus not ready, sleeping...'; \
+			Start-Sleep -Seconds 5 \
+		} \
+	}"
+else
+WAIT_CMD = until curl -sf $(NEXUS_URL)/service/rest/v1/status; do \
+echo 'Nexus not ready, sleeping...'; sleep 5; \
+done
+endif
+
 keycloak-disable-ssl:
 	@echo "Авторизация в Keycloak CLI"
 	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh config credentials \
@@ -29,6 +49,21 @@ keycloak-disable-ssl:
 	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
 
 	@echo "SSL requirement отключён в master realm"
+
+nexus-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d nexus
+	@echo "Waiting for Nexus to be healthy..."
+	@$(WAIT_CMD)
+	@echo "Nexus is healthy!"
+
+nexus-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down nexus
+
+nexus-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v nexus
+
+build-artifacts:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build $(SHARED_ARTIFACTS) --no-cache
 
 start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d

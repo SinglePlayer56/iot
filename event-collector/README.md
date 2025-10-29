@@ -60,6 +60,10 @@
     - Docker
     - Docker Compose
 
+3. Зависимости:
+   - Запущен контейнер nexus `make nexus-start`
+   - В Nexus опубликованы артефакты `make build-artifacts`
+
 3.  Используй команды `make` для управления сервисами:
 
 | Команда                                       | Назначение                                            |
