@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "Device",
+  "namespace": "com.viktor.avro",
+  "fields": [
+    {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
+    {"name": "deviceType", "type": { "type": "string", "avro.java.string": "String" }},
+    {"name": "createdAt", "type": "long"},
+    {"name": "meta", "type": { "type": "string", "avro.java.string": "String" }}
+  ]
+}

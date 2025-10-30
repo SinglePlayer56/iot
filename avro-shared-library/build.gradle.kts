@@ -1,5 +1,3 @@
-import com.github.davidmc24.gradle.plugin.avro.GenerateAvroJavaTask
-
 plugins {
     `java-library`
     `maven-publish`
@@ -7,7 +5,7 @@ plugins {
 }
 
 group = "com.viktor"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 
 java {
@@ -73,7 +71,7 @@ publishing {
             from(components["java"])
             groupId = "com.viktor"
             artifactId = "avro-shared-library"
-            version = "1.0.0"
+            version = "1.0.1"
         }
     }
 
