@@ -12,16 +12,16 @@ KafkaBroker -> KEC : получение события в Avro (DeviceEvent)
 KEC -> ECS : Обработка десериализованного события
 ECS -> ECR : Сохранение события в БД
 ECS -> DPS : Передаю device события
-DPS -> DDC : Проверяем публикацию device по deviceId
+DPS -> DDC : Проверяем публикацию device
 
 alt Уже публиковали
     DDC --> DPS : Публикация была
-    DPS -> DPS: Пропускаем сохранение deviceId и отправку
+    DPS -> DPS: Пропускаем сохранение информации о device и отправку
 else Не публиковали
     DDC --> DPS : Публикации не было
     DPS -> KDP : Отдаём на публикацию device
     KDP -> KafkaBroker : Публикуем device в devices
-    DPS -> DPR : Сохраняем deviceId опубликованного device в БД
-    DPS -> DDC : Добавляем deviceId в кеш
+    DPS -> DPR : Сохраняем информацию об опубликованном device в БД
+    DPS -> DDC : Добавляем device в кеш
 end
 @enduml
