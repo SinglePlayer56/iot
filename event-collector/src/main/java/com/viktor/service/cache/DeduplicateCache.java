@@ -2,7 +2,9 @@ package com.viktor.service.cache;
 
 import com.datastax.oss.driver.shaded.guava.common.hash.BloomFilter;
 import com.datastax.oss.driver.shaded.guava.common.hash.Funnels;
-import com.viktor.repository.DeviceIdPublicationRepository;
+import com.viktor.avro.Device;
+import com.viktor.entity.DevicePublication;
+import com.viktor.repository.DevicePublicationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -18,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Slf4j
 public class DeduplicateCache {
 
-    private final DeviceIdPublicationRepository deviceIdPublicationRepository;
+    private final DevicePublicationRepository devicePublicationRepository;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -30,27 +32,37 @@ public class DeduplicateCache {
 
     @EventListener(ApplicationReadyEvent.class)
     public void initializeCacheFromDatabase() {
-        deviceIdPublicationRepository.findAll()
-                .doOnNext(entity -> filter.put(entity.getDeviceId()))
+        devicePublicationRepository.findAll()
+                .doOnNext(entity -> filter.put(buildKey(entity)))
                 .doOnComplete(() -> log.info("All device IDs loaded into Bloom filter"))
                 .blockLast();
     }
 
-    public void add(String deviceId) {
+    public void add(Device device) {
         lock.writeLock().lock();
         try {
-            filter.put(deviceId);
+            var key = buildKey(device);
+            filter.put(key);
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    public boolean contains(String deviceId) {
+    public boolean contains(Device device) {
         lock.readLock().lock();
         try {
-            return filter.mightContain(deviceId);
+            var key = buildKey(device);
+            return filter.mightContain(key);
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    private String buildKey(Device device) {
+        return device.getDeviceId() + "|" + device.getDeviceType() + "|" + device.getMeta();
+    }
+
+    private String buildKey(DevicePublication devicePublication) {
+        return devicePublication.getDeviceId() + "|" + devicePublication.getDeviceType() + "|" + devicePublication.getMeta();
     }
 }

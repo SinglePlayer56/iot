@@ -44,7 +44,7 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
-      write-topic: device-id-topic
+      write-topic: devices
       properties:
         auto.register.schemas: false
         acks: all

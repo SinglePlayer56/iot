@@ -1,6 +1,6 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.DeviceId;
+import com.viktor.avro.Device;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,15 +10,14 @@ import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
-public class KafkaDeviceIdProducer {
+public class KafkaDeviceProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${spring.kafka.producer.write-topic}")
     private final String writeTopic;
 
-    public Mono<SendResult<String, Object>> send(String deviceId) {
-        DeviceId message = new DeviceId(deviceId);
-        return Mono.fromFuture(() -> kafkaTemplate.send(writeTopic, message));
+    public Mono<SendResult<String, Object>> send(Device device) {
+        return Mono.fromFuture(() -> kafkaTemplate.send(writeTopic, device));
     }
 }

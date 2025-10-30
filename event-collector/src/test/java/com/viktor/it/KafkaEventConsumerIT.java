@@ -1,6 +1,7 @@
 package com.viktor.it;
 
 
+import com.viktor.avro.Device;
 import com.viktor.avro.DeviceEvent;
 import com.viktor.service.event_collector.EventCollectorService;
 import org.junit.jupiter.api.DisplayName;
@@ -30,10 +31,17 @@ public class KafkaEventConsumerIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Should consume Kafka event and invoke EventCollectorService")
     void givenKafkaEvent_whenConsumed_thenEventCollectorServiceIsInvoked() throws InterruptedException {
-        DeviceEvent event = new DeviceEvent("evt-cons-1", "dev-cons-1", System.currentTimeMillis(), "TEST", "payload");
+        String deviceId = "dev-chain-1";
+        Device device = new Device();
+        device.setDeviceId(deviceId);
+        device.setDeviceType("type");
+        device.setCreatedAt(System.currentTimeMillis());
+        device.setMeta("meta");
+
+        DeviceEvent event = new DeviceEvent("evt-cons-1", device, System.currentTimeMillis(), "TEST", "payload");
         kafkaTemplate.send("events", event);
 
         verify(eventCollectorService, timeout(5000))
-                .processEvents(Mockito.argThat(list -> list.stream().anyMatch(e -> e.getDeviceId().equals("dev-cons-1"))));
+                .processEvents(Mockito.argThat(list -> list.stream().anyMatch(e -> e.getDevice().getDeviceId().equals(deviceId))));
     }
 }

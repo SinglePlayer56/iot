@@ -1,6 +1,7 @@
 package com.viktor.repository;
 
 import com.viktor.entity.DeviceEventByDevice;
+import com.viktor.util.EventDataUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,13 +21,7 @@ public class EventCollectorRepositoryTest {
     @Test
     @DisplayName("Should save DeviceEventByDevice entity successfully")
     void givenDeviceEvent_whenSave_thenEventIsPersisted() {
-        DeviceEventByDevice event = DeviceEventByDevice.builder()
-                .deviceId("dev-1")
-                .eventId("event-123")
-                .timestamp(System.currentTimeMillis())
-                .type("ALERT")
-                .payload("payload-data")
-                .build();
+        DeviceEventByDevice event = EventDataUtil.getDeviceEventByDevice1();
 
         BDDMockito.given(repository.save(event)).willReturn(Mono.just(event));
 

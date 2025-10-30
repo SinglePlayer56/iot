@@ -4,7 +4,7 @@
 - подписывается на Kafka-топик `events`
 - получает события в формате Avro (валидация через Schema Registry)
 - сохраняет события в Apache Cassandra для аналитики
-- публикует уникальные `device_id` в отдельный Kafka-топик `device-id-topic`
+- публикует уникальные `device` в отдельный Kafka-топик `devices`
 
 ---
 
@@ -12,14 +12,25 @@
 
 ### `events-value` (для топика `events`)
 
-```json
+```avroschema
 {
   "type": "record",
   "name": "DeviceEvent",
   "namespace": "com.viktor.avro",
   "fields": [
     { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
-    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } },
+    { "name": "device", "type": {
+      "type": "record",
+      "name": "Device",
+      "namespace": "com.viktor.avro",
+      "fields": [
+        {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
+        {"name": "deviceType", "type": { "type": "string", "avro.java.string": "String" }},
+        {"name": "createdAt", "type": "long"},
+        {"name": "meta", "type": { "type": "string", "avro.java.string": "String" }}
+      ]
+    }
+    },
     { "name": "timestamp", "type": "long" },
     { "name": "type", "type":{ "type": "string", "avro.java.string": "String" } },
     { "name": "payload", "type": { "type": "string", "avro.java.string": "String" } }
@@ -27,15 +38,18 @@
 }
 ```
 
-### `device-id-topic-value` (для топика `device-id-topic`)
+### `devices-value` (для топика `devices`)
 
 ```json
 {
   "type": "record",
-  "name": "DeviceId",
+  "name": "Device",
   "namespace": "com.viktor.avro",
   "fields": [
-    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } }
+    {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
+    {"name": "deviceType", "type": { "type": "string", "avro.java.string": "String" }},
+    {"name": "createdAt", "type": "long"},
+    {"name": "meta", "type": { "type": "string", "avro.java.string": "String" }}
   ]
 }
 ```
@@ -43,7 +57,7 @@
 > ⚠️ **Важно:** Avro-схемы необходимо добавить вручную в Schema Registry через Kafka UI (http://localhost:8070)
 > 1. Открой `Schema Registry`
 > 2. Добавь схему для `events-value`
-> 3. Добавь схему для `device-id-topic-value`
+> 3. Добавь схему для `devices-value`
 > 4. После этого можно публиковать сообщения в топик `events`.
 
 ---
@@ -83,11 +97,16 @@
 
 ```json
 {
-  "eventId": "event-123",
-  "deviceId": "device-001",
-  "timestamp": 1698146400000,
-  "type": "ALERT",
-  "payload": "{\"status\":\"OK\"}"
+  "eventId": "f7b3c404-64e2-4a39-95e1-57f451c01a6f",
+  "device": {
+    "deviceId": "dev-12345",
+    "deviceType": "sensor",
+    "createdAt": 1730289185000,
+    "meta": "{\"location\":\"Moscow\",\"firmware\":\"1.2.3\"}"
+  },
+  "timestamp": 1730289185000,
+  "type": "STATE_UPDATE",
+  "payload": "{\"temperature\":24.7,\"humidity\":55}"
 }
 ```
 

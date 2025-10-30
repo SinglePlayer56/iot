@@ -5,7 +5,7 @@ val versions = mapOf(
     "opentelemetrySpringBootVersion" to "2.6.0",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.0"
+    "avroSharedLibrary" to "1.0.1"
 )
 
 plugins {
@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "com.viktor"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 
 java {

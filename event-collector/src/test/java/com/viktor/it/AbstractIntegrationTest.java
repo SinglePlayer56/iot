@@ -112,28 +112,42 @@ public abstract class AbstractIntegrationTest {
 
         registerSchema("events-value", """
                 {
-                  "type": "record",
-                  "name": "DeviceEvent",
-                  "namespace": "com.viktor.avro",
-                  "fields": [
-                    { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
-                    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } },
-                    { "name": "timestamp", "type": "long" },
-                    { "name": "type", "type": { "type": "string", "avro.java.string": "String" } },
-                    { "name": "payload", "type": { "type": "string", "avro.java.string": "String" } }
-                  ]
-                }
+                   "type": "record",
+                   "name": "DeviceEvent",
+                   "namespace": "com.viktor.avro",
+                   "fields": [
+                     { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
+                     { "name": "device", "type": {
+                         "type": "record",
+                         "name": "Device",
+                         "namespace": "com.viktor.avro",
+                         "fields": [
+                           {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
+                           {"name": "deviceType", "type": { "type": "string", "avro.java.string": "String" }},
+                           {"name": "createdAt", "type": "long"},
+                           {"name": "meta", "type": { "type": "string", "avro.java.string": "String" }}
+                         ]
+                       }
+                     },
+                     { "name": "timestamp", "type": "long" },
+                     { "name": "type", "type":{ "type": "string", "avro.java.string": "String" } },
+                     { "name": "payload", "type": { "type": "string", "avro.java.string": "String" } }
+                   ]
+                 }
                 """);
 
-        registerSchema("device-id-topic-value", """
+        registerSchema("devices-value", """
                 {
-                  "type": "record",
-                  "name": "DeviceId",
-                  "namespace": "com.viktor.avro",
-                  "fields": [
-                    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } }
-                  ]
-                }
+                   "type": "record",
+                   "name": "Device",
+                   "namespace": "com.viktor.avro",
+                   "fields": [
+                     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
+                     {"name": "deviceType", "type": { "type": "string", "avro.java.string": "String" }},
+                     {"name": "createdAt", "type": "long"},
+                     {"name": "meta", "type": { "type": "string", "avro.java.string": "String" }}
+                   ]
+                 }
                 """);
     }
 

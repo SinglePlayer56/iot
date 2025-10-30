@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS iot_events.device_id_publication;

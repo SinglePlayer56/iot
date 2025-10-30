@@ -3,7 +3,7 @@ package com.viktor.service.event_collector;
 import com.viktor.avro.DeviceEvent;
 import com.viktor.entity.DeviceEventByDevice;
 import com.viktor.repository.EventCollectorRepository;
-import com.viktor.service.device_id_publication.DeviceIdPublicationService;
+import com.viktor.service.device_publication.DeviceIdPublicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,15 +25,15 @@ public class EventCollectorServiceImpl implements EventCollectorService {
         return Flux.fromIterable(events)
                 .flatMap(this::saveEvent)
                 .thenMany(Flux.fromIterable(events)
-                        .map(DeviceEvent::getDeviceId)
+                        .map(DeviceEvent::getDevice)
                         .distinct()
-                        .flatMap(deviceIdPublicationService::processDeviceId))
+                        .flatMap(deviceIdPublicationService::processDevice))
                 .then();
     }
 
     private Mono<DeviceEventByDevice> saveEvent(DeviceEvent deviceEvent) {
         DeviceEventByDevice event = DeviceEventByDevice.builder()
-                .deviceId(deviceEvent.getDeviceId())
+                .deviceId(deviceEvent.getDevice().getDeviceId())
                 .eventId(deviceEvent.getEventId())
                 .timestamp(deviceEvent.getTimestamp())
                 .type(deviceEvent.getType())

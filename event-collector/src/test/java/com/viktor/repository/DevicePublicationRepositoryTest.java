@@ -1,6 +1,7 @@
 package com.viktor.repository;
 
-import com.viktor.entity.DeviceIdPublication;
+import com.viktor.entity.DevicePublication;
+import com.viktor.util.DevicePublicationDataUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,18 +13,18 @@ import reactor.core.publisher.Mono;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
-public class DeviceIdPublicationRepositoryTest {
+public class DevicePublicationRepositoryTest {
 
     @Mock
-    private DeviceIdPublicationRepository repository;
+    private DevicePublicationRepository repository;
 
     @Test
     @DisplayName("Should save DeviceIdPublication entity successfully")
     void givenDeviceIdPublication_whenSave_thenEntityIsPersisted() {
-        DeviceIdPublication entity = new DeviceIdPublication("dev-1", System.currentTimeMillis());
+        DevicePublication entity = DevicePublicationDataUtil.getDevicePublication1();
         BDDMockito.given(repository.save(entity)).willReturn(Mono.just(entity));
 
-        DeviceIdPublication saved = repository.save(entity).block();
+        DevicePublication saved = repository.save(entity).block();
 
         assertThat(saved).isNotNull();
         assertThat(saved.getDeviceId()).isEqualTo("dev-1");
