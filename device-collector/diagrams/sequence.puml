@@ -5,24 +5,24 @@ participant "Device Collector Service" as DCS
 participant "Device Collector Repository" as DCR
 participant "Metrics Service" as MS
 participant "Error Handler" as EH
-participant "Sharding Sphere Proxy" as SSP
+participant "ShardingSphere JDBC Driver" as SSJ
 participant "Shard N" as S
 
 loop N попыток
     DCS -> DCR : Сохранение события
-    DCR -> SSP: Запрос на прокси
-    SSP -> S : Маршрутизация запроса на нужный шард
+    DCR -> SSJ: Вызов JDBC-запроса(маршрутизация на нужный шард)
+    SSJ -> S : Выполнение SQL на выбранном шарде
     alt Успешно
-        S --> SSP : OK
-        SSP --> DCR : OK
+        S --> SSJ : OK
+        SSJ --> DCR : OK
         DCR --> DCS : OK
         DCS -> MS : Инкремент успешного сохранения(через аспект)
         DCS --> KDC : OK
         KDC -> KafkaBroker : Отправка ACK
         break
     else Ошибка
-        S --> SSP : Ошибка
-        SSP --> DCR : Ошибка
+        S --> SSJ : Ошибка
+        SSJ --> DCR : Ошибка
         DCR --> DCS : Ошибка
     end
 end

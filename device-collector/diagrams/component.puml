@@ -4,7 +4,7 @@
 Container_Boundary(device_collector_service, "Device Collector Service") {
     Component(device_service, "Device Collector Service", "Обработка устройств")
     Component(device_repo, "Device Collector Repository", "JDBC", "Добавление/обновление информации об устройствах")
-    Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение событий из топика device-id-topic")
+    Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение событий из топика devices")
     Component(metrics_service, "Metrics Service", "Добавление кастомных метрик")
     Component(configs, "Configs", "Конфигурации")
     Component(aspects, "Aspects", "Аспекты")
@@ -15,13 +15,13 @@ Container_Boundary(device_collector_service, "Device Collector Service") {
     Rel(kafka_device_consumer, device_service, "Передача десериализованного сообщения на обработку")
 }
 
-ContainerDb(device_collector_data, "Device DB Cluster", "ShardingSphereProxy + PostgreSQL", "Шардированное хранилище данных об устройствах")
+ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSphere JDBC)", "Шардированное хранилище данных об устройствах")
 ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt / device-id-topic топики")
 Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
 
 Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализация")
 Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика device-id-topic")
 Rel(error_handler, kafka, "Публикации сообщений в DLT при неудачной обработке")
-Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "JDBC")
+Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "ShardingSphere JDBC")
 
 @enduml

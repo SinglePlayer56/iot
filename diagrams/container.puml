@@ -18,12 +18,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
 
     Boundary(device_collector_data, "Device DB Cluster") {
-        Container(sharding_spere_proxy, "Sharding Spere Proxy", "SQL-прокси: маршрутизирует запросы, реализует протокол MySQL/Postgres")
         ContainerDb(shard_device_collector_1, "DB Shard 1", "Database")
         ContainerDb(shard_device_collector_2, "DB Shard 2", "Database")
-
-        Rel(sharding_spere_proxy, shard_device_collector_1, "Маршрутизирует SQL запросы")
-        Rel(sharding_spere_proxy, shard_device_collector_2, "Маршрутизирует SQL запросы")
     }
 
     Boundary(kafka_stack, "Kafka Stack") {
@@ -42,7 +38,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel_Back(nexus, event_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel(device_collector_service, kafka, "Читает из топика device-id-topic", "Avro")
-    Rel(device_collector_service, sharding_spere_proxy, "Записывает и читает данные", "JDBC")
+    Rel(device_collector_service, shard_device_collector_1, "Сохраняет и читает данные", "ShardingSphere JDBC")
+    Rel(device_collector_service, shard_device_collector_2, "Сохраняет и читает данные", "ShardingSphere JDBC")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -75,7 +72,6 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, device_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, cassandra, "Читает JMX")
     Rel(prometheus, schema_registry, "Читает JMX")
-    Rel(prometheus, sharding_spere_proxy, "Собирает метрики")
 
     Rel(alloy, auth, "Сбор трейсов и логов с контейнеров")
     Rel(prometheus, keycloak, "Собирает метрики")
