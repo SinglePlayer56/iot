@@ -12,9 +12,13 @@ scrape_configs:
     static_configs:
       - targets: [ 'postgres-exporter-commands:9187' ]
 
-  - job_name: postgres-exporter-devices
+  - job_name: postgres-exporter-devices-shard-1-main
     static_configs:
-      - targets: [ 'postgres-exporter-devices:9187' ]
+      - targets: [ 'postgres-exporter-devices-shard-1-main:9187' ]
+
+  - job_name: postgres-exporter-devices-shard-2-main
+    static_configs:
+      - targets: [ 'postgres-exporter-devices-shard-2-main:9187' ]
 
   - job_name: postgres-exporter-keycloak
     static_configs:

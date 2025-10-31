@@ -4,15 +4,16 @@ val versions = mapOf(
     "opentelemetrySpringBootVersion" to "2.6.0",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.0"
+    "avroSharedLibrary" to "1.0.1",
+    "shardingJdbc" to "5.4.1"
 )
 
 
 plugins {
-	java
+    java
     idea
-	id("org.springframework.boot") version "3.5.6"
-	id("io.spring.dependency-management") version "1.1.7"
+    id("org.springframework.boot") version "3.5.6"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "com.viktor"
@@ -20,19 +21,19 @@ version = "1.0.0"
 description = ""
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(24)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(24)
+    }
 }
 
 configurations {
-	compileOnly {
-		extendsFrom(configurations.annotationProcessor.get())
-	}
+    compileOnly {
+        extendsFrom(configurations.annotationProcessor.get())
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
     maven(url = "https://packages.confluent.io/maven")
     maven {
         val nexusUrl = System.getenv("NEXUS_URL") ?: "http://localhost:8085/repository/maven-releases/"
@@ -53,6 +54,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    implementation("org.apache.shardingsphere:shardingsphere-jdbc-core:${versions["shardingJdbc"]}")
 
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.confluent:kafka-avro-serializer:${versions["avroSerializer"]}")
@@ -81,5 +84,5 @@ dependencies {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

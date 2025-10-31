@@ -8,15 +8,22 @@ COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 
 MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
 
-INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_devices postgres_keycloak postgres_camunda \
-            redis keycloak kafka schema-registry cassandra camunda minio \
-            postgres-exporter-commands postgres-exporter-devices \
+INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_camunda postgres_keycloak  \
+			postgres-devices-shard-1-main postgres-devices-shard-2-main \
+            postgres-exporter-devices-shard-1-main postgres-exporter-devices-shard-2-main \
+            redis keycloak kafka schema-registry cassandra camunda minio postgres-exporter-commands \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
             redis-exporter
 
-EVENT_COLLECTOR_SERVICES ?= event-collector cassandra kafka schema-registry kafka-ui
+KAFKA_SERVICES ?= kafka schema-registry kafka-ui
+
+EVENT_COLLECTOR_SERVICES ?= event-collector cassandra $(KAFKA_SERVICES)
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
+
+DEVICE_COLLECTOR_SERVICES ?= $(KAFKA_SERVICES) postgres-devices-shard-1-main postgres-devices-shard-2-main
+
+DEVICE_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-1-main postgres-exporter-devices-shard-2-main
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
@@ -111,3 +118,27 @@ event-collector-monitoring-stop:
 
 event-collector-monitoring-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
+
+device-collector-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-start-build:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) --build
+
+device-collector-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-monitoring-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
+
+device-collector-monitoring-start-build:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING) --build
+
+device-collector-monitoring-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
+
+device-collector-monitoring-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)

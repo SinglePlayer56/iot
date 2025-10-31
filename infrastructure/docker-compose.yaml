@@ -18,22 +18,41 @@ services:
       interval: 10s
       retries: 5
 
-  postgres_devices:
+  postgres-devices-shard-1-main:
     image: postgres:17
-    container_name: postgres_devices
+    container_name: postgres-devices-shard-1-main
     restart: unless-stopped
     ports:
       - "5434:5432"
     networks:
       - iot_network
     volumes:
-      - postgres_devices_data:/var/lib/postgresql/data
+      - postgres-devices-data-shard-1-main:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${POSTGRES_DEVICES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DEVICES_DB}
+      POSTGRES_USER: ${POSTGRES_DEVICES_USER_SHARD_1_MAIN}
+      POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MAIN}
+      POSTGRES_DB: ${POSTGRES_DEVICES_DB_SHARD_1_MAIN}
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER}" ]
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER_SHARD_1_MAIN}" ]
+      interval: 10s
+      retries: 5
+
+  postgres-devices-shard-2-main:
+    image: postgres:17
+    container_name: postgres-devices-shard-2-main
+    restart: unless-stopped
+    ports:
+      - "5437:5432"
+    networks:
+      - iot_network
+    volumes:
+      - postgres-devices-data-shard-2-main:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_DEVICES_USER_SHARD_2_MAIN}
+      POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD_SHARD_2_MAIN}
+      POSTGRES_DB: ${POSTGRES_DEVICES_DB_SHARD_2_MAIN}
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER_SHARD_2_MAIN}" ]
       interval: 10s
       retries: 5
 
@@ -386,15 +405,31 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-exporter-devices:
+  postgres-exporter-devices-shard-1-main:
     image: prometheuscommunity/postgres-exporter
-    container_name: postgres-exporter-devices
+    container_name: postgres-exporter-devices-shard-1-main
     networks:
       - iot_network
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER}:${POSTGRES_DEVICES_PASSWORD}@postgres_devices:5432/${POSTGRES_DEVICES_DB}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_1_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_1_MAIN}@postgres_devices:5432/${POSTGRES_DEVICES_DB_SHARD_1_MAIN}?sslmode=disable
     depends_on:
-      postgres_devices:
+      postgres-devices-shard-1-main:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-exporter-devices-shard-2-main:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter-devices-shard-2-main
+    networks:
+      - iot_network
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_2_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_2_MAIN}@postgres_devices:5432/${POSTGRES_DEVICES_DB_SHARD_2_MAIN}?sslmode=disable
+    depends_on:
+      postgres-devices-shard-2-main:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
@@ -545,7 +580,6 @@ networks:
 
 volumes:
   cassandra-data:
-  postgres_devices_data:
   postgres_commands_data:
   postgres_keycloak_data:
   kafka_data:
@@ -554,3 +588,5 @@ volumes:
   grafana-storage:
   tempo_data:
   nexus-data:
+  postgres-devices-data-shard-1-main:
+  postgres-devices-data-shard-2-main:
