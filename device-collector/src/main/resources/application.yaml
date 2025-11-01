@@ -28,6 +28,19 @@ spring:
       properties:
         partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
 
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    url: jdbc:shardingsphere:classpath:sharding.yaml
+
+  flyway:
+    enabled: false
+    dataSources:
+      - url: jdbc:postgresql://localhost:5434/devices
+        username: postgres
+        password: postgres
+      - url: jdbc:postgresql://localhost:5437/devices
+        username: postgres
+        password: postgres
 
 management:
   server:

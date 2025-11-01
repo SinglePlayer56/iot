@@ -1,0 +1,28 @@
+dataSources:
+  shard_0_master:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    jdbcUrl: jdbc:postgresql://localhost:5434/devices
+    username: postgres
+    password: postgres
+  shard_1_master:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    jdbcUrl: jdbc:postgresql://localhost:5437/devices
+    username: postgres
+    password: postgres
+
+rules:
+  - !SHARDING
+    tables:
+      devices:
+        actualDataNodes: shard${0..1}.devices
+        tableStrategy:
+          none:
+        databaseStrategy:
+          standard:
+            shardingColumn: device_id
+            shardingAlgorithmName: deviceid_hash_mod
+    shardingAlgorithms:
+      deviceid_hash_mod:
+        type: INLINE
+        props:
+          algorithm-expression: shard${Math.abs(${device_id}.hashCode()) % 2}

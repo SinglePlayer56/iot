@@ -5,7 +5,7 @@ val versions = mapOf(
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
     "avroSharedLibrary" to "1.0.1",
-    "shardingJdbc" to "5.4.1"
+    "shardingJdbc" to "5.5.2"
 )
 
 
@@ -55,13 +55,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
-    implementation("org.apache.shardingsphere:shardingsphere-jdbc-core:${versions["shardingJdbc"]}")
-
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.confluent:kafka-avro-serializer:${versions["avroSerializer"]}")
     implementation("com.viktor:avro-shared-library:${versions["avroSharedLibrary"]}")
 
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.apache.shardingsphere:shardingsphere-jdbc:${versions["shardingJdbc"]}")
     implementation("org.flywaydb:flyway-core:${versions["flyway"]}")
     implementation("org.flywaydb:flyway-database-postgresql")
 
