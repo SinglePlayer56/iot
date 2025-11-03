@@ -5,7 +5,8 @@ val versions = mapOf(
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
     "avroSharedLibrary" to "1.0.1",
-    "shardingJdbc" to "5.5.2"
+    "shardingJdbc" to "5.5.2",
+    "mapStruct" to "1.6.3"
 )
 
 
@@ -68,6 +69,9 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
+
+    implementation("org.mapstruct:mapstruct:${versions["mapStruct"]}")
+    annotationProcessor("org.mapstruct:mapstruct-processor:${versions["mapStruct"]}")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

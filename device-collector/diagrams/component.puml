@@ -2,8 +2,8 @@
 !includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
 Container_Boundary(device_collector_service, "Device Collector Service") {
-    Component(device_service, "Device Collector Service", "Обработка устройств")
-    Component(device_repo, "Device Collector Repository", "JDBC", "Добавление/обновление информации об устройствах")
+    Component(device_service, "Device Service", "Обработка устройств")
+    Component(device_repo, "Device Dao", "JDBC", "Добавление/обновление информации об устройствах")
     Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение событий из топика devices")
     Component(metrics_service, "Metrics Service", "Добавление кастомных метрик")
     Component(configs, "Configs", "Конфигурации")

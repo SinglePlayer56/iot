@@ -1,8 +1,8 @@
 @startuml
 actor KafkaBroker
 participant "Kafka Device Consumer" as KDC
-participant "Device Collector Service" as DCS
-participant "Device Collector Repository" as DCR
+participant "Device Service" as DCS
+participant "Device Dao" as DCR
 participant "Metrics Service" as MS
 participant "Error Handler" as EH
 participant "ShardingSphere JDBC Driver" as SSJ
