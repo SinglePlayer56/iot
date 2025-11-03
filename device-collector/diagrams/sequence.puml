@@ -1,38 +1,44 @@
 @startuml
 actor KafkaBroker
 participant "Kafka Device Consumer" as KDC
+participant "Device Processor" as DP
 participant "Device Service" as DCS
 participant "Device Dao" as DCR
-participant "Metrics Service" as MS
-participant "Error Handler" as EH
 participant "ShardingSphere JDBC Driver" as SSJ
 participant "Shard N" as S
+participant "Kafka Device DLT Producer" as DLT
+participant "Metrics Service" as MS
 
-loop N попыток
-    DCS -> DCR : Сохранение события
-    DCR -> SSJ: Вызов JDBC-запроса(маршрутизация на нужный шард)
-    SSJ -> S : Выполнение SQL на выбранном шарде
+KDC -> DP : Получение батча сообщений и передача на обработку
+
+loop до 3 попыток
+    DP -> DCS : Передача устройства на обработку
+    DCS -> DCR : Сохранение устройства
+    DCR -> SSJ : Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S : Выполнение SQL
     alt Успешно
         S --> SSJ : OK
         SSJ --> DCR : OK
         DCR --> DCS : OK
-        DCS -> MS : Инкремент успешного сохранения(через аспект)
-        DCS --> KDC : OK
-        KDC -> KafkaBroker : Отправка ACK
+        DCS --> DP : OK
+        DP -> MS : Инкремент метрики успешной обработки (через аспект)
+        DP --> KDC : Успешное завершение обработки
+        KDC -> KafkaBroker : ACK топика devices
         break
     else Ошибка
         S --> SSJ : Ошибка
         SSJ --> DCR : Ошибка
         DCR --> DCS : Ошибка
+        DCS --> DP : Ошибка
     end
 end
 
 alt Все попытки неудачны
-    DCS -> EH : Ошибка сохранения
-    EH -> MS : Инкремент ошибок (через аспект)
-    EH -> KafkaBroker : Отправка сообщения в DLT
-    KafkaBroker --> EH : Подтверждение (DLT ACK)
-    EH --> KDC : OK
-    KDC -> KafkaBroker : Отправка ACK
+    DP -> DLT : Передача устройства на публикацию
+    DLT -> KafkaBroker : Отправка в devices.DLT топик
+    KafkaBroker --> DLT : ACK devices.DLT
+    DP -> MS : Инкремент метрики ошибок (через аспект)
+    DP --> KDC : Завершение с обработкой ошибки
+    KDC -> KafkaBroker : ACK топика devices
 end
 @enduml
