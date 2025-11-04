@@ -6,7 +6,8 @@ val versions = mapOf(
     "logstashVersion" to "7.4",
     "avroSharedLibrary" to "1.0.1",
     "shardingJdbc" to "5.5.2",
-    "mapStruct" to "1.6.3"
+    "mapStruct" to "1.6.3",
+    "mapStructBinding" to "0.2.0"
 )
 
 
@@ -72,10 +73,11 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
 
     implementation("org.mapstruct:mapstruct:${versions["mapStruct"]}")
-    annotationProcessor("org.mapstruct:mapstruct-processor:${versions["mapStruct"]}")
-
     compileOnly("org.projectlombok:lombok")
+
+    annotationProcessor("org.mapstruct:mapstruct-processor:${versions["mapStruct"]}")
     annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor ("org.projectlombok:lombok-mapstruct-binding:${versions["mapStructBinding"]}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
