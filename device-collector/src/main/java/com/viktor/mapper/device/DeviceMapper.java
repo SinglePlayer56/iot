@@ -8,6 +8,4 @@ import org.mapstruct.Mapper;
 public interface DeviceMapper {
 
     DeviceEntity toDeviceEntity(Device device);
-
-    Device toDevice(DeviceEntity deviceEntity);
 }
