@@ -5,6 +5,12 @@ dataSources:
     username: postgres
     password: postgres
 
+  shard_replica_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    jdbcUrl: jdbc:postgresql://localhost:5438/devices
+    username: postgres
+    password: postgres
+
   shard_master_1:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     jdbcUrl: jdbc:postgresql://localhost:5437/devices
@@ -12,10 +18,24 @@ dataSources:
     password: postgres
 
 rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      shard0:
+        writeDataSourceName: shard_master_0
+        readDataSourceNames: [ shard_replica_0 ]
+        loadBalancerName: round_robin
+      shard1:
+        writeDataSourceName: shard_master_1
+        readDataSourceNames: [ shard_master_1 ]
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+
   - !SHARDING
     tables:
       devices:
-        actualDataNodes: shard_master_${0..1}.devices
+        actualDataNodes: shard${0..1}.devices
         tableStrategy:
           none:
         databaseStrategy:
@@ -26,4 +46,4 @@ rules:
       deviceid_hash_mod:
         type: INLINE
         props:
-          algorithm-expression: shard_master_${Math.abs(device_id.hashCode()) % 2}
+          algorithm-expression: shard${Math.abs(device_id.hashCode()) % 2}

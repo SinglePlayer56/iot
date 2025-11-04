@@ -16,6 +16,10 @@ scrape_configs:
     static_configs:
       - targets: [ 'postgres-exporter-devices-shard-1-main:9187' ]
 
+  - job_name: postgres-exporter-devices-shard-1-replica
+    static_configs:
+      - targets: [ 'postgres-exporter-devices-shard-1-replica:9187' ]
+
   - job_name: postgres-exporter-devices-shard-2-main
     static_configs:
       - targets: [ 'postgres-exporter-devices-shard-2-main:9187' ]

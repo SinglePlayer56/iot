@@ -49,6 +49,9 @@ spring:
       - url: jdbc:postgresql://localhost:5437/devices
         username: postgres
         password: postgres
+      - url: jdbc:postgresql://localhost:5438/devices
+        username: postgres
+        password: postgres
 
 management:
   server:
