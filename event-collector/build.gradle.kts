@@ -57,7 +57,7 @@ dependencyManagement {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-cassandra-reactive")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.kafka:spring-kafka")
 
     implementation("io.confluent:kafka-avro-serializer:${versions["avroSerializer"]}")
