@@ -5,6 +5,7 @@ import com.datastax.oss.driver.shaded.guava.common.hash.Funnels;
 import com.viktor.avro.Device;
 import com.viktor.entity.DevicePublication;
 import com.viktor.repository.DevicePublicationRepository;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -38,9 +39,11 @@ public class DeduplicateCache {
                 .blockLast();
     }
 
+    @WithSpan("add-device-in-cache")
     public void add(Device device) {
         lock.writeLock().lock();
         try {
+            log.info("Add device {} in cache", device);
             var key = buildKey(device);
             filter.put(key);
         } finally {

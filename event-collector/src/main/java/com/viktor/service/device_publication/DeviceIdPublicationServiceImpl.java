@@ -5,12 +5,15 @@ import com.viktor.entity.DevicePublication;
 import com.viktor.kafka.KafkaDeviceProducer;
 import com.viktor.repository.DevicePublicationRepository;
 import com.viktor.service.cache.DeduplicateCache;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeviceIdPublicationServiceImpl implements DeviceIdPublicationService {
 
     private final DevicePublicationRepository devicePublicationRepository;
@@ -18,7 +21,9 @@ public class DeviceIdPublicationServiceImpl implements DeviceIdPublicationServic
     private final KafkaDeviceProducer kafkaDeviceProducer;
 
     @Override
+    @WithSpan("process-device")
     public Mono<Void> processDevice(Device device) {
+        log.info("Processing device {}", device);
         if (deduplicateCache.contains(device)) {
             return Mono.empty();
         }
