@@ -18,9 +18,9 @@ services:
       interval: 10s
       retries: 5
 
-  postgres-devices-shard-1-main:
+  postgres-devices-shard-1-master:
     image: postgres:17
-    container_name: postgres-devices-shard-1-main
+    container_name: postgres-devices-shard-1-master
     restart: unless-stopped
     ports:
       - "5434:5432"
@@ -46,9 +46,9 @@ services:
       interval: 10s
       retries: 5
 
-  postgres-devices-shard-2-main:
+  postgres-devices-shard-2-master:
     image: postgres:17
-    container_name: postgres-devices-shard-2-main
+    container_name: postgres-devices-shard-2-master
     restart: unless-stopped
     ports:
       - "5437:5432"
@@ -80,19 +80,18 @@ services:
     networks:
       - iot_network
     depends_on:
-      postgres-devices-shard-1-main:
+      postgres-devices-shard-1-master:
         condition: service_healthy
     volumes:
       - postgres-devices-data-shard-1-replica:/var/lib/postgresql/data
-      - ${PROJECT_DIR:-.}/postgresql/replica-init.sh:/replica-init.sh:ro
+      - ${PROJECT_DIR:-.}/postgresql/replica-init.sh:/docker-entrypoint-initdb.d/00-replica-init.sh:ro
     environment:
       POSTGRES_USER: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}
       POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}
       POSTGRES_DB: ${POSTGRES_DEVICES_DB_SHARD_1_REPLICA}
       REPL_USER: ${POSTGRES_REPLICATION_USER}
       REPL_PASS: ${POSTGRES_REPLICATION_PASSWORD}
-      MASTER_HOST: postgres-devices-shard-1-main
-    command: [ "/bin/bash", "/replica-init.sh" ]
+      MASTER_HOST: postgres-devices-shard-1-master
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}" ]
       interval: 10s
@@ -198,9 +197,9 @@ services:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
 
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -447,15 +446,15 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-exporter-devices-shard-1-main:
+  postgres-exporter-devices-shard-1-master:
     image: prometheuscommunity/postgres-exporter
-    container_name: postgres-exporter-devices-shard-1-main
+    container_name: postgres-exporter-devices-shard-1-master
     networks:
       - iot_network
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_1_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_1_MAIN}@postgres-devices-shard-1-main:5432/${POSTGRES_DEVICES_DB_SHARD_1_MAIN}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_1_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_1_MAIN}@postgres-devices-shard-1-master:5432/${POSTGRES_DEVICES_DB_SHARD_1_MAIN}?sslmode=disable
     depends_on:
-      postgres-devices-shard-1-main:
+      postgres-devices-shard-1-master:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
@@ -463,15 +462,15 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-exporter-devices-shard-2-main:
+  postgres-exporter-devices-shard-2-master:
     image: prometheuscommunity/postgres-exporter
-    container_name: postgres-exporter-devices-shard-2-main
+    container_name: postgres-exporter-devices-shard-2-master
     networks:
       - iot_network
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_2_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_2_MAIN}@postgres-devices-shard-2-main:5432/${POSTGRES_DEVICES_DB_SHARD_2_MAIN}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_2_MAIN}:${POSTGRES_DEVICES_PASSWORD_SHARD_2_MAIN}@postgres-devices-shard-2-master:5432/${POSTGRES_DEVICES_DB_SHARD_2_MAIN}?sslmode=disable
     depends_on:
-      postgres-devices-shard-2-main:
+      postgres-devices-shard-2-master:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
@@ -487,7 +486,7 @@ services:
     environment:
       DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}:${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}@postgres-devices-shard-1-replica:5432/${POSTGRES_DEVICES_DB_SHARD_1_REPLICA}?sslmode=disable
     depends_on:
-      postgres-devices-shard-1-main:
+      postgres-devices-shard-1-master:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
@@ -649,3 +648,4 @@ volumes:
   postgres-devices-data-shard-1-main:
   postgres-devices-data-shard-2-main:
   postgres-devices-data-shard-1-replica:
+  etcd-data:

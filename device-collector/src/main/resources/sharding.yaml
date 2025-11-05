@@ -22,7 +22,7 @@ rules:
     dataSourceGroups:
       shard0:
         writeDataSourceName: shard_master_0
-        readDataSourceNames: [ shard_replica_0 ]
+        readDataSourceNames: [ shard_master_0, shard_replica_0 ]
         loadBalancerName: round_robin
       shard1:
         writeDataSourceName: shard_master_1
@@ -47,3 +47,6 @@ rules:
         type: INLINE
         props:
           algorithm-expression: shard${Math.abs(device_id.hashCode()) % 2}
+
+props:
+  sql-show: true

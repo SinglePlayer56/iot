@@ -18,8 +18,11 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
 
     Boundary(device_collector_data, "Device DB Cluster") {
-        ContainerDb(shard_device_collector_1, "DB Shard 1", "Database")
-        ContainerDb(shard_device_collector_2, "DB Shard 2", "Database")
+        ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
+        ContainerDb(shard_device_collector_1_replica, "DB Shard 1 (Replica)", "PostgreSQL", "Реплика, только чтение")
+        ContainerDb(shard_device_collector_2_master, "DB Shard 2(Master)", "PostgreSQL", "Database")
+
+        Rel(shard_device_collector_1_master, shard_device_collector_1_replica, "Репликация", "WAL")
     }
 
     Boundary(kafka_stack, "Kafka Stack") {
@@ -38,8 +41,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel_Back(nexus, event_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel(device_collector_service, kafka, "Читает из топика device-id-topic", "Avro")
-    Rel(device_collector_service, shard_device_collector_1, "Сохраняет и читает данные", "ShardingSphere JDBC")
-    Rel(device_collector_service, shard_device_collector_2, "Сохраняет и читает данные", "ShardingSphere JDBC")
+    Rel(device_collector_service, shard_device_collector_1_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
+    Rel(device_collector_service, shard_device_collector_2_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -78,8 +81,8 @@ System_Boundary(observability, "Grafana") {
     Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
 
     Rel(alloy, iotSystem, "Сбор трейсов и логов с контейнеров")
-    Rel(pg_ex_devices_shard1, shard_device_collector_1, "Собирает и подготавливает метрики")
-    Rel(pg_ex_devices_shard2, shard_device_collector_2, "Собирает и подготавливает метрики")
+    Rel(pg_ex_devices_shard1, shard_device_collector_1_master, "Собирает и подготавливает метрики")
+    Rel(pg_ex_devices_shard2, shard_device_collector_2_master, "Собирает и подготавливает метрики")
     Rel(pg_ex_commands, postgresql_commands, "Собирает и подготавливает метрики")
     Rel(kafka_ex, kafka, "Собирает и подготавливает метрики")
     Rel(redis_ex, redis, "Собирает и подготавливает метрики")

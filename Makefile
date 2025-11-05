@@ -9,9 +9,9 @@ COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
 
 INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_camunda postgres_keycloak  \
-			postgres-devices-shard-1-main postgres-devices-shard-2-main \
+			postgres-devices-shard-1-master postgres-devices-shard-2-master \
 			postgres-devices-shard-1-replica \
-            postgres-exporter-devices-shard-1-main postgres-exporter-devices-shard-2-main \
+            postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-2-master \
             postgres-exporter-devices-shard-1-replica \
             redis keycloak kafka schema-registry cassandra camunda minio postgres-exporter-commands \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
@@ -23,10 +23,12 @@ EVENT_COLLECTOR_SERVICES ?= event-collector cassandra $(KAFKA_SERVICES)
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
 
-DEVICE_COLLECTOR_SERVICES ?= $(KAFKA_SERVICES) postgres-devices-shard-1-main postgres-devices-shard-2-main postgres-devices-shard-1-replica
+DEVICES_DB_CLUSTER ?= postgres-devices-shard-1-master postgres-devices-shard-1-replica postgres-devices-shard-2-master
 
-DEVICE_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-1-main \
-postgres-exporter-devices-shard-2-main postgres-exporter-devices-shard-1-replica
+DEVICE_COLLECTOR_SERVICES ?= $(KAFKA_SERVICES) $(DEVICES_DB_CLUSTER)
+
+DEVICE_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-1-master \
+postgres-exporter-devices-shard-2-master postgres-exporter-devices-shard-1-replica
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
