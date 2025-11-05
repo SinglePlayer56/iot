@@ -3,6 +3,7 @@ package com.viktor.dao;
 import com.viktor.entity.DeviceEntity;
 import com.viktor.exception.ShardErrorException;
 import com.viktor.util.ShardingUtil;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -27,7 +28,9 @@ public class DeviceDao {
                   meta = EXCLUDED.meta;
             """;
 
+    @WithSpan("save-device-dao")
     public void save(DeviceEntity deviceEntity) {
+        log.info("Save device in DAO {}", deviceEntity);
         try {
             jdbcTemplate.update(SAVE,
                     Map.of("device_id", deviceEntity.getDeviceId(),

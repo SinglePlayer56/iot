@@ -2,6 +2,7 @@ package com.viktor.service.kafka;
 
 import com.viktor.avro.Device;
 import com.viktor.service.device.DeviceProcessor;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,8 +19,10 @@ public class KafkaDeviceConsumer {
 
     private final DeviceProcessor deviceProcessor;
 
+    @WithSpan("consume-devices")
     @KafkaListener(topics = "${spring.kafka.consumer.read-topic}", groupId = "${spring.kafka.consumer.group-id}")
     public void listen(List<Device> devices, Acknowledgment ack) {
+        log.info("Received devices size: {}", devices.size());
         deviceProcessor.processDevices(devices)
                 .then(Mono.fromRunnable(() -> {
                     ack.acknowledge();
