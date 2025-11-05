@@ -9,6 +9,8 @@
                         "level": "%level",
                         "logger": "%logger",
                         "thread": "%thread",
+                        "trace_id": "%X{trace_id}",
+                        "span_id": "%X{span_id}",
                         "message": "%message",
                         "uid": "%X{uid}",
                         "subject": "%X{subject}",

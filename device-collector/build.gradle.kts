@@ -1,7 +1,6 @@
 val versions = mapOf(
     "avroSerializer" to "7.7.5",
     "flyway" to "11.14.1",
-    "opentelemetrySpringBootVersion" to "2.6.0",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
     "avroSharedLibrary" to "1.0.1",
@@ -52,6 +51,13 @@ repositories {
     }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.15.0")
+    }
+}
+
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -69,7 +75,7 @@ dependencies {
 
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:${versions["opentelemetrySpringBootVersion"]}")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
 
     implementation("org.mapstruct:mapstruct:${versions["mapStruct"]}")
