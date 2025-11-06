@@ -1,4 +1,4 @@
-package com.viktor.util;
+package com.viktor.utils;
 
 import lombok.experimental.UtilityClass;
 

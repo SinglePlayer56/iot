@@ -2,7 +2,7 @@ package com.viktor.dao;
 
 import com.viktor.entity.DeviceEntity;
 import com.viktor.exception.ShardErrorException;
-import com.viktor.util.ShardingUtil;
+import com.viktor.utils.ShardingUtil;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

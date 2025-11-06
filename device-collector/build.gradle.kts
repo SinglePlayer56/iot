@@ -70,6 +70,7 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.apache.shardingsphere:shardingsphere-jdbc:${versions["shardingJdbc"]}")
+
     implementation("org.flywaydb:flyway-core:${versions["flyway"]}")
     implementation("org.flywaydb:flyway-database-postgresql")
 
@@ -89,10 +90,11 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.mockito:mockito-core")
     testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:cassandra:${versions["testContainer"]}")
-    testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
+    testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")
 }
 
 tasks.withType<Test> {
