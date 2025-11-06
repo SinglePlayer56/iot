@@ -18,7 +18,7 @@ public class MetricsAspect {
 
     private final MetricsService metricsService;
 
-    @Around("execution(* com.viktor.service.kafka.KafkaDeviceDltProducer.publishToDlt(..))")
+    @Around("execution(* com.viktor.kafka.KafkaDeviceDltProducer.publishToDlt(..))")
     public Mono<Void> trackDltPublishMetrics(ProceedingJoinPoint pjp) throws Throwable {
         var result = (Mono<Void>) pjp.proceed();
         return result

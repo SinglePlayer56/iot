@@ -1,4 +1,4 @@
-package com.viktor.service.kafka;
+package com.viktor.kafka;
 
 import com.viktor.avro.Device;
 import io.opentelemetry.instrumentation.annotations.WithSpan;

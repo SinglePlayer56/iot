@@ -1,7 +1,7 @@
 package com.viktor.service.device;
 
 import com.viktor.avro.Device;
-import com.viktor.service.kafka.KafkaDeviceDltProducer;
+import com.viktor.kafka.KafkaDeviceDltProducer;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
