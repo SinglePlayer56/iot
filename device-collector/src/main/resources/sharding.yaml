@@ -1,21 +1,21 @@
 dataSources:
   shard_master_0:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    jdbcUrl: jdbc:postgresql://localhost:5434/devices
-    username: postgres
-    password: postgres
+    jdbcUrl: jdbc:postgresql://${SHARD_0_MASTER_URL:localhost:5434}/${POSTGRES_DEVICES_DB_NAME:devices}
+    username: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER:postgres}
+    password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER:postgres}
 
   shard_replica_0:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    jdbcUrl: jdbc:postgresql://localhost:5438/devices
-    username: postgres
-    password: postgres
+    jdbcUrl: jdbc:postgresql://${SHARD_0_REPLICA_URL:localhost:5438}/${POSTGRES_DEVICES_DB_NAME:devices}
+    username: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA:postgres}
+    password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA:postgres}
 
   shard_master_1:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    jdbcUrl: jdbc:postgresql://localhost:5437/devices
-    username: postgres
-    password: postgres
+    jdbcUrl: jdbc:postgresql://${SHARD_1_MASTER_URL:localhost:5437}/${POSTGRES_DEVICES_DB_NAME:devices}
+    username: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER:postgres}
+    password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER:postgres}
 
 rules:
   - !READWRITE_SPLITTING

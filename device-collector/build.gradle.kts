@@ -84,7 +84,7 @@ dependencies {
 
     annotationProcessor("org.mapstruct:mapstruct-processor:${versions["mapStruct"]}")
     annotationProcessor("org.projectlombok:lombok")
-    annotationProcessor ("org.projectlombok:lombok-mapstruct-binding:${versions["mapStructBinding"]}")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:${versions["mapStructBinding"]}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")

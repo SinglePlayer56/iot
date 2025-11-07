@@ -43,15 +43,12 @@ spring:
   flyway:
     enabled: false
     dataSources:
-      - url: jdbc:postgresql://localhost:5434/devices
-        username: postgres
-        password: postgres
-      - url: jdbc:postgresql://localhost:5437/devices
-        username: postgres
-        password: postgres
-      - url: jdbc:postgresql://localhost:5438/devices
-        username: postgres
-        password: postgres
+      - url: jdbc:postgresql://${SHARD_0_MASTER_URL:localhost:5434}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER:postgres}
+      - url: jdbc:postgresql://${SHARD_1_MASTER_URL:localhost:5437}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_1_MAIN:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MAIN:postgres}
 
 management:
   server:

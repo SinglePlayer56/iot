@@ -1,0 +1,45 @@
+dataSources:
+  shard_master_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    jdbcUrl: jdbc:postgresql://host.docker.internal:11000/devices
+    username: postgres
+    password: postgres
+
+  shard_master_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    jdbcUrl: jdbc:postgresql://host.docker.internal:11001/devices
+    username: postgres
+    password: postgres
+
+rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      shard0:
+        writeDataSourceName: shard_master_0
+        readDataSourceNames: [ shard_master_0 ]
+        loadBalancerName: round_robin
+      shard1:
+        writeDataSourceName: shard_master_1
+        readDataSourceNames: [ shard_master_1 ]
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+  - !SHARDING
+    tables:
+      devices:
+        actualDataNodes: shard${0..1}.devices
+        tableStrategy:
+          none:
+        databaseStrategy:
+          standard:
+            shardingColumn: device_id
+            shardingAlgorithmName: deviceid_hash_mod
+    shardingAlgorithms:
+      deviceid_hash_mod:
+        type: INLINE
+        props:
+          algorithm-expression: shard${Math.abs(device_id.hashCode()) % 2}
+
+props:
+  sql-show: true

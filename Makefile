@@ -9,10 +9,10 @@ COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
 
 INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_camunda postgres_keycloak  \
-			postgres-devices-shard-1-master postgres-devices-shard-2-master \
-			postgres-devices-shard-1-replica \
-            postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-2-master \
-            postgres-exporter-devices-shard-1-replica \
+			postgres-devices-shard-0-master postgres-devices-shard-1-master \
+			postgres-devices-shard-0-replica \
+            postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
+            postgres-exporter-devices-shard-0-replica \
             redis keycloak kafka schema-registry cassandra camunda minio postgres-exporter-commands \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
             redis-exporter
@@ -23,12 +23,12 @@ EVENT_COLLECTOR_SERVICES ?= event-collector cassandra $(KAFKA_SERVICES)
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
 
-DEVICES_DB_CLUSTER ?= postgres-devices-shard-1-master postgres-devices-shard-1-replica postgres-devices-shard-2-master
+DEVICES_DB_CLUSTER ?= postgres-devices-shard-0-master postgres-devices-shard-0-replica postgres-devices-shard-1-master
 
-DEVICE_COLLECTOR_SERVICES ?= $(KAFKA_SERVICES) $(DEVICES_DB_CLUSTER)
+DEVICE_COLLECTOR_SERVICES ?= device-collector $(KAFKA_SERVICES) $(DEVICES_DB_CLUSTER)
 
-DEVICE_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-1-master \
-postgres-exporter-devices-shard-2-master postgres-exporter-devices-shard-1-replica
+DEVICE_COLLECTOR_MONITORING ?= device-collector $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-0-master \
+postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-replica
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
@@ -48,6 +48,12 @@ WAIT_CMD = until curl -sf $(NEXUS_URL)/service/rest/v1/status; do \
 echo 'Nexus not ready, sleeping...'; sleep 5; \
 done
 endif
+
+docker-proxy-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d docker-proxy
+
+docker-proxy-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down docker-proxy
 
 keycloak-disable-ssl:
 	@echo "Авторизация в Keycloak CLI"
@@ -104,7 +110,9 @@ event-collector-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES)
 
 event-collector-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) --build
+	@$(MAKE) docker-proxy-stop
 
 event-collector-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES)
@@ -116,7 +124,9 @@ event-collector-monitoring-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
 
 event-collector-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
 
 event-collector-monitoring-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
@@ -128,7 +138,9 @@ device-collector-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES)
 
 device-collector-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) --build
+	@$(MAKE) docker-proxy-stop
 
 device-collector-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES)
@@ -140,7 +152,9 @@ device-collector-monitoring-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
 
 device-collector-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
 
 device-collector-monitoring-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)

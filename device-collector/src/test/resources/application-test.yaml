@@ -1,0 +1,56 @@
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+spring:
+  application:
+    name: device-collector
+
+  kafka:
+    listener:
+      type: batch
+      ack-mode: manual
+      poll-timeout: 1000
+      concurrency: 1
+
+    bootstrap-servers: host.docker.internal:9094
+    properties:
+      schema.registry.url: http://host.docker.internal:8081
+      specific.avro.reader: true
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        auto.register.schemas: false
+        acks: all
+        enable.idempotence: true
+
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      enable-auto-commit: false
+      max-poll-records: 100
+      read-topic: devices
+      group-id: devices-collector-test-group
+      auto-offset-reset: earliest
+      properties:
+        specific.avro.reader: true
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
+
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    url: jdbc:shardingsphere:classpath:sharding-test.yaml
+
+  flyway:
+    enabled: true
+    dataSources:
+      - url: jdbc:postgresql://host.docker.internal:11000/devices
+        username: postgres
+        password: postgres
+
+      - url: jdbc:postgresql://host.docker.internal:11001/devices
+        username: postgres
+        password: postgres
