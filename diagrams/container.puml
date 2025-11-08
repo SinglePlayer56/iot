@@ -8,6 +8,7 @@ System_Boundary(auth, "Keycloak") {
 }
 
 Container(nexus, "Nexus", "Artifact Repository", "Хранение общих артефактов")
+Container(docker_proxy, "Docker Proxy", "Socat", "Поднимает socat проксируя сокет Docker")
 
 System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(redis, "Redis", "In-memory Cache", "Кэширование запросов")
@@ -40,6 +41,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(kafka_ui, schema_registry, "Читает схемы сообщений")
     Rel_Back(nexus, event_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel(device_collector_service, kafka, "Читает из топика device-id-topic", "Avro")
     Rel(device_collector_service, shard_device_collector_1_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
     Rel(device_collector_service, shard_device_collector_2_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
