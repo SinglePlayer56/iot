@@ -1,6 +1,7 @@
 @startuml
 actor KafkaBroker
 participant "Kafka Device Consumer" as KDC
+participant "Kafka Error Handler" as KEH
 participant "Device Processor" as DP
 participant "Device Service" as DCS
 participant "Device Dao" as DCR
@@ -10,6 +11,14 @@ participant "Kafka Device DLT Producer" as DLT
 participant "Metrics Service" as MS
 
 KDC -> DP : Получение батча сообщений и передача на обработку
+
+alt Невалидное сообщение (ошибка десериализации)
+    KDC -> KEH : Передача ошибки
+    KEH -> KafkaBroker : ACK сообщения (чтобы не блокировать consumer)
+    return
+else Валидное сообщение
+    KDC -> DP : Передача сообщения на обработку
+end
 
 loop до 3 попыток
     DP -> DCS : Передача устройства на обработку
