@@ -123,7 +123,12 @@
 ---
 
 ## Тестирование
+Тесты запускается автоматически при сборке контейнера.\
+Используйте команды с постфиксом *-build
+- `make event-collector-start-build`
+- `make event-collector-monitoring-start-build`
 
+Для запуска тестов в локальной среде, необходимо заменить host.docker.internal на localhost в тестовых конфигах
 ```bash
   ./gradlew test
 ```

@@ -27,6 +27,9 @@ public class TestDeviceDao {
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
 
+    @Mock
+    private RowMapper<DeviceEntity> rowMapper;
+
     @InjectMocks
     private DeviceDao deviceDao;
 
