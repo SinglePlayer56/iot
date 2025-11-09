@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 public abstract class AbstractIntegrationTest {
 
@@ -27,6 +28,9 @@ public abstract class AbstractIntegrationTest {
     private static final CassandraContainer<?> cassandra;
     private static final GenericContainer<?> kafka;
     private static final GenericContainer<?> schemaRegistry;
+
+    public static final String HOST = Objects.nonNull(System.getenv("TESTCONTAINERS_HOST_OVERRIDE")) ?
+            System.getenv("TESTCONTAINERS_HOST_OVERRIDE") : "localhost";
 
     static {
         network = Network.newNetwork();
@@ -48,7 +52,7 @@ public abstract class AbstractIntegrationTest {
                 .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
                 .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@kafka:9093")
                 .withEnv("KAFKA_LISTENERS", "PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094")
-                .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://host.docker.internal:9094")
+                .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://" + HOST + ":9094")
                 .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT")
                 .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "PLAINTEXT")
@@ -95,7 +99,7 @@ public abstract class AbstractIntegrationTest {
         System.out.println("Registering Kafka bootstrap.servers = " + kafkaBootstrap);
         registry.add("spring.kafka.bootstrap-servers", () -> kafkaBootstrap);
 
-        String schemaUrl = "http://host.docker.internal:" + schemaRegistry.getMappedPort(8081);
+        String schemaUrl = "http://" + HOST + ":" + schemaRegistry.getMappedPort(8081);
         System.out.println("Registering Schema Registry URL = " + schemaUrl);
         registry.add("spring.kafka.properties.schema.registry.url", () -> schemaUrl);
 
@@ -108,7 +112,7 @@ public abstract class AbstractIntegrationTest {
         Thread.sleep(10_000); // 10 секунд
         System.out.println("Cassandra: " + cassandra.getContactPoint());
         System.out.println("Kafka (external): " + kafka.getContainerName());
-        System.out.println("Schema Registry: http://host.docker.internal:" + schemaRegistry.getMappedPort(8081));
+        System.out.println("Schema Registry: http://" + HOST + ":" + schemaRegistry.getMappedPort(8081));
 
         registerSchema("events-value", """
                 {
@@ -152,7 +156,7 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static void registerSchema(String subject, String schemaJson) throws Exception {
-        String url = "http://host.docker.internal:" + schemaRegistry.getMappedPort(8081)
+        String url = "http://" + HOST + ":" + schemaRegistry.getMappedPort(8081)
                      + "/subjects/" + subject + "/versions";
 
         // используем Jackson для корректной сериализации
