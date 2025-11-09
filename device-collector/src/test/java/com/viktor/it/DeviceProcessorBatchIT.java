@@ -26,6 +26,9 @@ public class DeviceProcessorBatchIT extends AbstractIntegrationTest {
     private DeviceProcessor deviceProcessor;
 
     @Autowired
+    private ShardingUtil shardingUtil;
+
+    @Autowired
     private DeviceDao deviceDao;
 
     @Test
@@ -42,10 +45,10 @@ public class DeviceProcessorBatchIT extends AbstractIntegrationTest {
         assertThat(deviceDao.findById(dev1.getDeviceId())).isPresent();
         assertThat(deviceDao.findById(dev2.getDeviceId())).isPresent();
 
-        assertThat(ShardingUtil.determineShard(dev1.getDeviceId()))
-                .isNotEqualTo(ShardingUtil.determineShard(dev2.getDeviceId()));
+        assertThat(shardingUtil.determineShard(dev1.getDeviceId()))
+                .isNotEqualTo(shardingUtil.determineShard(dev2.getDeviceId()));
 
-        assertThat(ShardingUtil.determineShard(dev2.getDeviceId()))
+        assertThat(shardingUtil.determineShard(dev2.getDeviceId()))
                 .isNotNull();
     }
 }

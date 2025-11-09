@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 public abstract class AbstractIntegrationTest {
 
@@ -28,6 +29,9 @@ public abstract class AbstractIntegrationTest {
     public static final GenericContainer<?> schemaRegistry;
     private static final PostgreSQLContainer<?> shard0;
     private static final PostgreSQLContainer<?> shard1;
+
+    public static final String HOST = Objects.nonNull(System.getenv("TESTCONTAINERS_HOST_OVERRIDE")) ?
+            System.getenv("TESTCONTAINERS_HOST_OVERRIDE") : "localhost";
 
     static {
         network = Network.newNetwork();
@@ -39,9 +43,7 @@ public abstract class AbstractIntegrationTest {
                 .withUsername("postgres")
                 .withPassword("postgres")
                 .withEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
-                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
-                        .withPortBindings(new PortBinding(Ports.Binding.bindPort(11000), new ExposedPort(5432)))
-                )
+                .withExposedPorts(5432)
                 .waitingFor(Wait.forListeningPort())
                 .withStartupTimeout(Duration.ofMinutes(2));
 
@@ -54,9 +56,7 @@ public abstract class AbstractIntegrationTest {
                 .withUsername("postgres")
                 .withPassword("postgres")
                 .withEnv("POSTGRES_HOST_AUTH_METHOD", "trust")
-                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
-                        .withPortBindings(new PortBinding(Ports.Binding.bindPort(11001), new ExposedPort(5432)))
-                )
+                .withExposedPorts(5432)
                 .waitingFor(Wait.forListeningPort())
                 .withStartupTimeout(Duration.ofMinutes(2));
 
@@ -70,7 +70,7 @@ public abstract class AbstractIntegrationTest {
                 .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
                 .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@kafka:9093")
                 .withEnv("KAFKA_LISTENERS", "PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094")
-                .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://host.docker.internal:9094")
+                .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://" + HOST + ":9094")
                 .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT")
                 .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
                 .withEnv("KAFKA_INTER_BROKER_LISTENER_NAME", "PLAINTEXT")
@@ -108,11 +108,28 @@ public abstract class AbstractIntegrationTest {
         System.out.println("Registering Kafka bootstrap.servers = " + kafkaBootstrap);
         registry.add("spring.kafka.bootstrap-servers", () -> kafkaBootstrap);
 
-        String schemaUrl = "http://host.docker.internal:" + schemaRegistry.getMappedPort(8081);
+        String schemaUrl = "http://" + HOST + ":" + schemaRegistry.getMappedPort(8081);
         System.out.println("Registering Schema Registry URL = " + schemaUrl);
         registry.add("spring.kafka.properties.schema.registry.url", () -> schemaUrl);
 
         registry.add("spring.kafka.properties.specific.avro.reader", () -> true);
+
+        registry.add("spring.flyway.dataSources[0].url", () -> "jdbc:postgresql://" + HOST + ":" + shard0.getMappedPort(5432) + "/devices");
+        registry.add("spring.flyway.dataSources[0].username", () -> "postgres");
+        registry.add("spring.flyway.dataSources[0].password", () -> "postgres");
+        registry.add("spring.flyway.dataSources[0].password", () -> "postgres");
+        registry.add("spring.flyway.dataSources[1].url", () -> "jdbc:postgresql://" + HOST + ":" + shard1.getMappedPort(5432) + "/devices");
+        registry.add("spring.flyway.dataSources[1].username", () -> "postgres");
+        registry.add("spring.flyway.dataSources[1].password", () -> "postgres");
+
+        registry.add("sharding.shards[0].name", () -> "shard0");
+        registry.add("sharding.shards[0].master.url", () -> "jdbc:postgresql://" + HOST + ":" + shard0.getMappedPort(5432) + "/devices");
+        registry.add("sharding.shards[0].master.username", () -> "postgres");
+        registry.add("sharding.shards[0].master.password", () -> "postgres");
+        registry.add("sharding.shards[1].name", () -> "shard1");
+        registry.add("sharding.shards[1].master.url", () -> "jdbc:postgresql://" + HOST + ":" + shard1.getMappedPort(5432) + "/devices");
+        registry.add("sharding.shards[1].master.username", () -> "postgres");
+        registry.add("sharding.shards[1].master.password", () -> "postgres");
     }
 
     @BeforeAll
@@ -122,7 +139,7 @@ public abstract class AbstractIntegrationTest {
         System.out.println("Shard 0: " + shard0.getContainerName());
         System.out.println("Shard 1: " + shard1.getContainerName());
         System.out.println("Kafka (external): " + kafka.getContainerName());
-        System.out.println("Schema Registry: http://host.docker.internal:" + schemaRegistry.getMappedPort(8081));
+        System.out.println("Schema Registry: http://" + HOST + ":" + schemaRegistry.getMappedPort(8081));
 
         var schema = """
                 {
@@ -144,7 +161,7 @@ public abstract class AbstractIntegrationTest {
     }
 
     private static void registerSchema(String subject, String schemaJson) throws Exception {
-        String url = "http://host.docker.internal:" + schemaRegistry.getMappedPort(8081)
+        String url = "http://" + HOST + ":" + schemaRegistry.getMappedPort(8081)
                      + "/subjects/" + subject + "/versions";
 
         // используем Jackson для корректной сериализации

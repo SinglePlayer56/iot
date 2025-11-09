@@ -20,6 +20,7 @@ public class DeviceDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final RowMapper<DeviceEntity> rowMapper;
+    private final ShardingUtil shardingUtil;
 
     private static final String FIND_BY_DEVICE_ID = "SELECT * FROM devices WHERE device_id = :device_id";
     private static final String DELETE_BY_DEVICE_ID = "DELETE FROM devices WHERE device_id = :device_id";
@@ -39,7 +40,7 @@ public class DeviceDao {
             return jdbcTemplate.query(FIND_BY_DEVICE_ID, Map.of("device_id", deviceId), rowMapper).stream()
                     .findFirst();
         } catch (Exception e) {
-            var shardName = ShardingUtil.determineShard(deviceId);
+            var shardName = shardingUtil.determineShard(deviceId);
             log.error("Error finding entity to shard {}", shardName, e);
             throw new ShardErrorException(e.getMessage(), shardName);
         }
@@ -56,7 +57,7 @@ public class DeviceDao {
             return rows;
         } catch (Exception e) {
             log.error("error while delete device with device_id {}", deviceId, e);
-            var shardName = ShardingUtil.determineShard(deviceId);
+            var shardName = shardingUtil.determineShard(deviceId);
             throw new ShardErrorException(e.getMessage(), shardName);
         }
     }
@@ -74,7 +75,7 @@ public class DeviceDao {
             log.info("Save device in DAO {}", deviceEntity);
         } catch (Exception e) {
             log.error("error while save device in DAO {}", deviceEntity, e);
-            var shardName = ShardingUtil.determineShard(deviceEntity.getDeviceId());
+            var shardName = shardingUtil.determineShard(deviceEntity.getDeviceId());
             throw new ShardErrorException(e.getMessage(), shardName);
         }
     }

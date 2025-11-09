@@ -36,10 +36,6 @@ spring:
       properties:
         partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
 
-  datasource:
-    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-    url: jdbc:shardingsphere:classpath:sharding.yaml
-
   flyway:
     enabled: false
     dataSources:
@@ -74,3 +70,30 @@ management:
     otlp:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
       protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+
+sharding:
+  dbName: devices
+
+  shardingAlgorithm: "shard${Math.abs(device_id.hashCode()) % 2}"
+
+  table:
+    name: devices
+    shardingColumn: device_id
+
+  shards:
+    - name: shard0
+      master:
+        url: jdbc:postgresql://${SHARD_0_MASTER_URL:localhost:5434}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER:postgres}
+      replicas:
+        - url: jdbc:postgresql://${SHARD_0_REPLICA_URL:localhost:5438}/${POSTGRES_DEVICES_DB_NAME:devices}
+          username: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA:postgres}
+          password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA:postgres}
+
+    - name: shard1
+      master:
+        url: jdbc:postgresql://${SHARD_1_MASTER_URL:localhost:5437}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER:postgres}
+      replicas: [ ]

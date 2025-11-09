@@ -15,9 +15,9 @@ spring:
       poll-timeout: 1000
       concurrency: 1
 
-    bootstrap-servers: host.docker.internal:9094
+    bootstrap-servers: ${TESTCONTAINERS_HOST_OVERRIDE:localhost}:9094
     properties:
-      schema.registry.url: http://host.docker.internal:8081
+      schema.registry.url: http://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:8081
       specific.avro.reader: true
 
     producer:
@@ -40,17 +40,36 @@ spring:
         specific.avro.reader: true
         partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
 
-  datasource:
-    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-    url: jdbc:shardingsphere:classpath:sharding-test.yaml
-
   flyway:
-    enabled: true
+    enabled: false
+    user: postgres
     dataSources:
-      - url: jdbc:postgresql://host.docker.internal:11000/devices
+      - url: jdbc:postgresql://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:11000/devices
         username: postgres
         password: postgres
 
-      - url: jdbc:postgresql://host.docker.internal:11001/devices
+      - url: jdbc:postgresql://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:11001/devices
+        username: postgres
+        password: postgres
+
+sharding:
+  dbName: devices
+
+  shardingAlgorithm: "shard${Math.abs(device_id.hashCode()) % 2}"
+
+  table:
+    name: devices
+    shardingColumn: device_id
+
+  shards:
+    - name: shard0
+      master:
+        url: jdbc:postgresql://localhost:5434/devices
+        username: postgres
+        password: postgres
+
+    - name: shard1
+      master:
+        url: jdbc:postgresql://localhost:5437/devices
         username: postgres
         password: postgres

@@ -1,6 +1,6 @@
 package com.viktor.configs;
 
-import com.viktor.configs.model.MigrationSource;
+import com.viktor.configs.model.DataSourceConfig;
 import lombok.Data;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer;
@@ -15,12 +15,12 @@ import java.util.List;
 @ConfigurationProperties(prefix = "spring.flyway")
 public class FlywayMigrationConfig {
 
-    private List<MigrationSource> dataSources;
+    private List<DataSourceConfig> dataSources;
 
     @Bean
     public FlywayMigrationInitializer flywayMigrationInitializer() {
         return new FlywayMigrationInitializer(Flyway.configure().load(), _ -> {
-            for (MigrationSource dataSource : dataSources) {
+            for (DataSourceConfig dataSource : dataSources) {
                 Flyway.configure()
                         .dataSource(dataSource.url(), dataSource.username(), dataSource.password())
                         .locations("classpath:db/migration")

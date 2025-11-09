@@ -57,7 +57,7 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
     }
 
     private String schemaRegistryUrl() {
-        return "http://host.docker.internal:" + schemaRegistry.getMappedPort(8081);
+        return "http://" + HOST + ":" + schemaRegistry.getMappedPort(8081);
     }
 
     @Test

@@ -94,7 +94,7 @@
 - `make device-collector-start-build`
 - `make device-collector-monitoring-start-build`
 
-Для запуска тестов в локальной среде, необходимо заменить host.docker.internal на localhost в тестовых конфигах
+Для запуска тестов в локальной среде.
 ```bash
   ./gradlew test
 ```

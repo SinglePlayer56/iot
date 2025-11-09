@@ -29,6 +29,9 @@ public class DeviceServiceImplIT extends AbstractIntegrationTest {
     private DeviceDao deviceDao;
 
     @Autowired
+    private ShardingUtil shardingUtil;
+
+    @Autowired
     List<DataSource> dataSources;
 
     @Test
@@ -36,7 +39,7 @@ public class DeviceServiceImplIT extends AbstractIntegrationTest {
     void givenNewDevice_whenSaving_thenSavedToCorrectShard() {
         var device = DeviceUtilData.getDevice1();
 
-        String expectedShard = ShardingUtil.determineShard(device.getDeviceId());
+        String expectedShard = shardingUtil.determineShard(device.getDeviceId());
 
         StepVerifier.create(deviceService.saveDevice(device))
                 .verifyComplete();
@@ -44,7 +47,7 @@ public class DeviceServiceImplIT extends AbstractIntegrationTest {
         var saved = deviceDao.findById(device.getDeviceId());
 
         assertThat(saved).isPresent();
-        assertThat(ShardingUtil.determineShard(saved.get().getDeviceId()))
+        assertThat(shardingUtil.determineShard(saved.get().getDeviceId()))
                 .isEqualTo(expectedShard);
     }
 
@@ -77,8 +80,8 @@ public class DeviceServiceImplIT extends AbstractIntegrationTest {
 
         var devB = DeviceUtilData.getDevice2();
 
-        var shardA = ShardingUtil.determineShard(devA.getDeviceId());
-        var shardB = ShardingUtil.determineShard(devB.getDeviceId());
+        var shardA = shardingUtil.determineShard(devA.getDeviceId());
+        var shardB = shardingUtil.determineShard(devB.getDeviceId());
 
         assertThat(shardA).isNotEqualTo(shardB);
 
