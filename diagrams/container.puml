@@ -18,13 +18,16 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
     Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка устройств")
+    Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
         ContainerDb(shard_device_collector_1_replica, "DB Shard 1 (Replica)", "PostgreSQL", "Реплика, только чтение")
         ContainerDb(shard_device_collector_2_master, "DB Shard 2(Master)", "PostgreSQL", "Database")
+        ContainerDb(shard_device_collector_2_replica, "DB Shard 2 (Replica)", "PostgreSQL", "Реплика, только чтение")
 
         Rel(shard_device_collector_1_master, shard_device_collector_1_replica, "Репликация", "WAL")
+        Rel(shard_device_collector_2_master, shard_device_collector_2_replica, "Репликация", "WAL")
     }
 
     Boundary(kafka_stack, "Kafka Stack") {
@@ -34,24 +37,38 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     }
 
     Rel(schema_registry, kafka, "KafkaStore (хранилище схем)")
+
     Rel(event_collector_service, kafka, "Читает из топика events", "Avro")
     Rel(event_collector_service, kafka, "Публикует уникальные device в топик devices. Публикует информацию об ошибках в dlt-topic.", "Avro")
     Rel(event_collector_service, cassandra, "Сохраняет события вычитанные из топика events")
     Rel(event_collector_service, schema_registry, "Валидация Avro сообщений", "REST")
+
     Rel(kafka_ui, kafka, "Подключается для чтения метаданных и просмотра топиков")
     Rel(kafka_ui, schema_registry, "Читает схемы сообщений")
+
     Rel_Back(nexus, event_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(nexus, device_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, failed_events_processor, "Получает артефакты на этапе сборки", "Gradle")
+
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, device_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+
     Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
     Rel(device_collector_service, kafka, "Публикует информацию об ошибках в dlt-topic", "Avro")
     Rel(device_collector_service, shard_device_collector_1_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
     Rel(device_collector_service, shard_device_collector_2_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
+
     Rel(failed_events_processor, kafka, "Читает из топика dlt-topic", "Avro")
     Rel(failed_events_processor, minio, "Запись и чтение JSON объектов", "JSON")
+
+    Rel(device_service, kafka, "Публикация в топик devices", "Avro")
+    Rel(device_service, shard_device_collector_1_replica, "Чтение данных", "ShardingSphere JDBC")
+    Rel(device_service, shard_device_collector_2_replica, "Чтение данных", "ShardingSphere JDBC")
+    Rel(device_service, redis, "Кеширование")
+    Rel(device_service, keycloak, "Валидация JWT токена")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -60,8 +77,10 @@ System_Boundary(observability, "Grafana") {
     Container(alloy, "Alloy", "Agent", "Сбор метрик/логов из контейнеров")
     Container(tempo, "Tempo", "Traces", "Хранение трейсов")
     Container(loki, "Loki", "Logs", "Хранение логов")
-    Container(pg_ex_devices_shard1, "Postgres Exporter Device Collector Shard 1", "Сбор и подготовка метрик")
-    Container(pg_ex_devices_shard2, "Postgres Exporter Device Collector Shard 2", "Сбор и подготовка метрик")
+    Container(pg_ex_devices_shard1_master, "Postgres Exporter Device Collector Shard 1 Master", "Сбор и подготовка метрик")
+    Container(pg_ex_devices_shard2_master, "Postgres Exporter Device Collector Shard 2 Master", "Сбор и подготовка метрик")
+    Container(pg_ex_devices_shard1_replica, "Postgres Exporter Device Collector Shard 1 Replica", "Сбор и подготовка метрик")
+    Container(pg_ex_devices_shard2_replica, "Postgres Exporter Device Collector Shard 2 Replica", "Сбор и подготовка метрик")
     Container(pg_ex_commands, "Postgres Exporter Commands", "Сбор и подготовка метрик")
     Container(pg_ex_keycloak, "Postgres Exporter Keycloak", "Сбор и подготовка метрик")
     Container(kafka_ex, "Kafka exporter", "Сбор и подготовка метрик")
@@ -70,11 +89,16 @@ System_Boundary(observability, "Grafana") {
     Rel(grafana, prometheus, "Запрашивает метрики")
     Rel(grafana, loki, "Запрашивает логи")
     Rel(grafana, tempo, "Запрашивает трейсы")
+
     Rel(alloy, loki, "Отправка логов")
     Rel(alloy, tempo, "Отправка трейсов")
+    Rel(alloy, auth, "Сбор трейсов и логов с контейнеров")
+    Rel(alloy, iotSystem, "Сбор трейсов и логов с контейнеров")
 
-    Rel(prometheus, pg_ex_devices_shard1, "Собирает метрики")
-    Rel(prometheus, pg_ex_devices_shard2, "Собирает метрики")
+    Rel(prometheus, pg_ex_devices_shard1_master, "Собирает метрики")
+    Rel(prometheus, pg_ex_devices_shard2_master, "Собирает метрики")
+    Rel(prometheus, pg_ex_devices_shard1_replica, "Собирает метрики")
+    Rel(prometheus, pg_ex_devices_shard2_replica, "Собирает метрики")
     Rel(prometheus, pg_ex_commands, "Собирает метрики")
     Rel(prometheus, kafka_ex, "Собирает метрики")
     Rel(prometheus, pg_ex_keycloak, "Собирает метрики")
@@ -82,17 +106,18 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, minio, "Собирает метрики")
     Rel(prometheus, event_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, device_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, failed_events_processor, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, cassandra, "Читает JMX")
     Rel(prometheus, schema_registry, "Читает JMX")
-
-    Rel(alloy, auth, "Сбор трейсов и логов с контейнеров")
     Rel(prometheus, keycloak, "Собирает метрики")
-    Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
 
-    Rel(alloy, iotSystem, "Сбор трейсов и логов с контейнеров")
-    Rel(pg_ex_devices_shard1, shard_device_collector_1_master, "Собирает и подготавливает метрики")
-    Rel(pg_ex_devices_shard2, shard_device_collector_2_master, "Собирает и подготавливает метрики")
+
+    Rel(pg_ex_devices_shard1_master, shard_device_collector_1_master, "Собирает и подготавливает метрики")
+    Rel(pg_ex_devices_shard2_master, shard_device_collector_2_master, "Собирает и подготавливает метрики")
+    Rel(pg_ex_devices_shard1_replica, shard_device_collector_1_replica, "Собирает и подготавливает метрики")
+    Rel(pg_ex_devices_shard2_replica, shard_device_collector_2_replica, "Собирает и подготавливает метрики")
+    Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
     Rel(pg_ex_commands, postgresql_commands, "Собирает и подготавливает метрики")
     Rel(kafka_ex, kafka, "Собирает и подготавливает метрики")
     Rel(redis_ex, redis, "Собирает и подготавливает метрики")
