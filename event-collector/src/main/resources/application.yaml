@@ -44,7 +44,7 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
-      write-topic: device-id-topic
+      write-topic: devices
       properties:
         auto.register.schemas: false
         acks: all
@@ -57,7 +57,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       enable-auto-commit: false
-      max-poll-records: 50
+      max-poll-records: 100
 
   cassandra:
     contact-points: ${CASSANDRA_HOST:localhost}

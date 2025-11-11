@@ -1,8 +1,0 @@
-{
-  "type": "record",
-  "name": "DeviceId",
-  "namespace": "com.viktor.avro",
-  "fields": [
-    { "name": "deviceId", "type": { "type": "string", "avro.java.string": "String" } }
-  ]
-}

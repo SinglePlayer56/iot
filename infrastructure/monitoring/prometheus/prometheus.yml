@@ -12,9 +12,17 @@ scrape_configs:
     static_configs:
       - targets: [ 'postgres-exporter-commands:9187' ]
 
-  - job_name: postgres-exporter-devices
+  - job_name: postgres-exporter-devices-shard-0-master
     static_configs:
-      - targets: [ 'postgres-exporter-devices:9187' ]
+      - targets: [ 'postgres-exporter-devices-shard-0-master:9187' ]
+
+  - job_name: postgres-exporter-devices-shard-0-replica
+    static_configs:
+      - targets: [ 'postgres-exporter-devices-shard-0-replica:9187' ]
+
+  - job_name: postgres-exporter-devices-shard-1-master
+    static_configs:
+      - targets: [ 'postgres-exporter-devices-shard-1-master:9187' ]
 
   - job_name: postgres-exporter-keycloak
     static_configs:
@@ -75,3 +83,9 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: [ 'event-collector:8200' ]
+
+  - job_name: device-collector
+    scrape_interval: 10s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8201' ]

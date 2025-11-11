@@ -2,20 +2,58 @@ include $(wildcard .env)
 
 KEYCLOAK_CONTAINER := keycloak
 DOCKER_COMPOSE = docker-compose
+NEXUS_URL = http://localhost:8085
 ENV_FILE ?= .env
 COMPOSE_FILE ?= infrastructure/docker-compose.yaml
 
 MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
 
-INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_devices postgres_keycloak postgres_camunda \
-            redis keycloak kafka schema-registry cassandra camunda minio \
-            postgres-exporter-commands postgres-exporter-devices \
+INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_camunda postgres_keycloak  \
+			postgres-devices-shard-0-master postgres-devices-shard-1-master \
+			postgres-devices-shard-0-replica \
+            postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
+            postgres-exporter-devices-shard-0-replica \
+            redis keycloak kafka schema-registry cassandra camunda minio postgres-exporter-commands \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
             redis-exporter
 
-EVENT_COLLECTOR_SERVICES ?= event-collector cassandra kafka schema-registry kafka-ui
+KAFKA_SERVICES ?= kafka schema-registry kafka-ui
+
+EVENT_COLLECTOR_SERVICES ?= event-collector cassandra $(KAFKA_SERVICES)
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
+
+DEVICES_DB_CLUSTER ?= postgres-devices-shard-0-master postgres-devices-shard-0-replica postgres-devices-shard-1-master
+
+DEVICE_COLLECTOR_SERVICES ?= device-collector $(KAFKA_SERVICES) $(DEVICES_DB_CLUSTER)
+
+DEVICE_COLLECTOR_MONITORING ?= device-collector $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-0-master \
+postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-replica
+
+SHARED_ARTIFACTS ?= avro-shared-library-publisher
+
+ifeq ($(OS),Windows_NT)
+WAIT_CMD = powershell -Command "while ($$true) { \
+		try { \
+			Invoke-WebRequest -UseBasicParsing -Uri $(NEXUS_URL)/service/rest/v1/status -ErrorAction Stop; \
+			break \
+		} \
+		catch { \
+			Write-Host 'Nexus not ready, sleeping...'; \
+			Start-Sleep -Seconds 5 \
+		} \
+	}"
+else
+WAIT_CMD = until curl -sf $(NEXUS_URL)/service/rest/v1/status; do \
+echo 'Nexus not ready, sleeping...'; sleep 5; \
+done
+endif
+
+docker-proxy-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d docker-proxy
+
+docker-proxy-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down docker-proxy
 
 keycloak-disable-ssl:
 	@echo "Авторизация в Keycloak CLI"
@@ -29,6 +67,21 @@ keycloak-disable-ssl:
 	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
 
 	@echo "SSL requirement отключён в master realm"
+
+nexus-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d nexus
+	@echo "Waiting for Nexus to be healthy..."
+	@$(WAIT_CMD)
+	@echo "Nexus is healthy!"
+
+nexus-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down nexus
+
+nexus-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v nexus
+
+build-artifacts:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build $(SHARED_ARTIFACTS) --no-cache
 
 start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d
@@ -57,7 +110,9 @@ event-collector-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES)
 
 event-collector-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) --build
+	@$(MAKE) docker-proxy-stop
 
 event-collector-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES)
@@ -69,10 +124,40 @@ event-collector-monitoring-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
 
 event-collector-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
 
 event-collector-monitoring-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
 
 event-collector-monitoring-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(EVENT_COLLECTOR_SERVICES) $(EVENT_COLLECTOR_MONITORING)
+
+device-collector-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) --build
+	@$(MAKE) docker-proxy-stop
+
+device-collector-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_COLLECTOR_SERVICES)
+
+device-collector-monitoring-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
+
+device-collector-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
+
+device-collector-monitoring-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
+
+device-collector-monitoring-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)

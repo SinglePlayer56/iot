@@ -1,0 +1,34 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(device_collector_service, "Device Collector Service") {
+    Component(device_processor, "Device Processor", "Retry/DLT", "Оркестрация обработки устройств: ретраи, отправка в DLT при ошибках")
+    Component(device_service, "Device Service", "Бизнес логика сохранения устройств в базу")
+    Component(device_repo, "Device Dao", "JDBC", "Добавление/обновление информации об устройствах")
+    Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение сообщений из топика devices")
+    Component(metrics_service, "Metrics Service", "Micrometer", "Добавление кастомных метрик")
+    Component(configs, "Configs", "Конфигурации")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(exceptions, "Exceptions", "Кастомные ексепшены")
+    Component(kafka_device_dlt_producer, "Kafka Device DLT Producer", "Публикация сообщения в devices.DLT при неудачной обработке")
+    Component(kafka_error_handler, "Kafka Error Handler", "Error Handler", "Обработка сообщения неверной схемы, сдвигает offset")
+
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
+    Rel(device_service, device_repo, "Сохранение/обновление устройств")
+    Rel(kafka_device_consumer, device_processor, "Передача десериализованного батча устройств на обработку")
+    Rel(kafka_device_consumer, kafka_error_handler, "Проброс сообщения с невалидной схемой")
+    Rel(device_processor, device_service, "Вызов сохранения каждого устройства с retry/backoff")
+    Rel(device_processor, kafka_device_dlt_producer, "Передача сообщения на публикацию в DLT после исчерпания попыток")
+}
+
+ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSphere JDBC)", "Шардированное хранилище данных об устройствах")
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "devices.DLT / devices топики")
+Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+
+Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализация")
+Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для десериализация")
+Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика device-id-topic")
+Rel(kafka_device_dlt_producer, kafka, "Публикации сообщений в DLT при неудачной обработке")
+Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "ShardingSphere JDBC")
+
+@enduml

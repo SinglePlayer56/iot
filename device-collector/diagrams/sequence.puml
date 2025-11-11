@@ -1,0 +1,53 @@
+@startuml
+actor KafkaBroker
+participant "Kafka Device Consumer" as KDC
+participant "Kafka Error Handler" as KEH
+participant "Device Processor" as DP
+participant "Device Service" as DCS
+participant "Device Dao" as DCR
+participant "ShardingSphere JDBC Driver" as SSJ
+participant "Shard N" as S
+participant "Kafka Device DLT Producer" as DLT
+participant "Metrics Service" as MS
+
+KDC -> DP : Получение батча сообщений и передача на обработку
+
+alt Невалидное сообщение (ошибка десериализации)
+    KDC -> KEH : Передача ошибки
+    KEH -> KafkaBroker : ACK сообщения (чтобы не блокировать consumer)
+    return
+else Валидное сообщение
+    KDC -> DP : Передача сообщения на обработку
+end
+
+loop до 3 попыток
+    DP -> DCS : Передача устройства на обработку
+    DCS -> DCR : Сохранение устройства
+    DCR -> SSJ : Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S : Выполнение SQL
+    alt Успешно
+        S --> SSJ : OK
+        SSJ --> DCR : OK
+        DCR --> DCS : OK
+        DCS --> DP : OK
+        DP -> MS : Инкремент метрики успешной обработки (через аспект)
+        DP --> KDC : Успешное завершение обработки
+        KDC -> KafkaBroker : ACK топика devices
+        break
+    else Ошибка
+        S --> SSJ : Ошибка
+        SSJ --> DCR : Ошибка
+        DCR --> DCS : Ошибка
+        DCS --> DP : Ошибка
+    end
+end
+
+alt Все попытки неудачны
+    DP -> DLT : Передача устройства на публикацию
+    DLT -> KafkaBroker : Отправка в devices.DLT топик
+    KafkaBroker --> DLT : ACK devices.DLT
+    DP -> MS : Инкремент метрики ошибок (через аспект)
+    DP --> KDC : Завершение с обработкой ошибки
+    KDC -> KafkaBroker : ACK топика devices
+end
+@enduml

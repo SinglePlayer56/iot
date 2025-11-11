@@ -1,0 +1,75 @@
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+spring:
+  application:
+    name: device-collector
+
+  kafka:
+    listener:
+      type: batch
+      ack-mode: manual
+      poll-timeout: 1000
+      concurrency: 1
+
+    bootstrap-servers: ${TESTCONTAINERS_HOST_OVERRIDE:localhost}:9094
+    properties:
+      schema.registry.url: http://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:8081
+      specific.avro.reader: true
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        auto.register.schemas: false
+        acks: all
+        enable.idempotence: true
+
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      enable-auto-commit: false
+      max-poll-records: 100
+      read-topic: devices
+      group-id: devices-collector-test-group
+      auto-offset-reset: earliest
+      properties:
+        specific.avro.reader: true
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
+
+  flyway:
+    enabled: false
+    user: postgres
+    dataSources:
+      - url: jdbc:postgresql://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:11000/devices
+        username: postgres
+        password: postgres
+
+      - url: jdbc:postgresql://${TESTCONTAINERS_HOST_OVERRIDE:localhost}:11001/devices
+        username: postgres
+        password: postgres
+
+sharding:
+  dbName: devices
+
+  shardingAlgorithm: "shard${Math.abs(device_id.hashCode()) % 2}"
+
+  table:
+    name: devices
+    shardingColumn: device_id
+
+  shards:
+    - name: shard0
+      master:
+        url: jdbc:postgresql://localhost:5434/devices
+        username: postgres
+        password: postgres
+
+    - name: shard1
+      master:
+        url: jdbc:postgresql://localhost:5437/devices
+        username: postgres
+        password: postgres

@@ -1,8 +1,10 @@
 package com.viktor.it;
 
+import com.viktor.avro.Device;
 import com.viktor.avro.DeviceEvent;
-import com.viktor.repository.DeviceIdPublicationRepository;
+import com.viktor.repository.DevicePublicationRepository;
 import com.viktor.service.cache.DeduplicateCache;
+import com.viktor.util.DeviceDataUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,7 @@ public class EventProcessingChainIT extends AbstractIntegrationTest {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
-    private DeviceIdPublicationRepository publicationRepository;
+    private DevicePublicationRepository publicationRepository;
 
     @Autowired
     private DeduplicateCache deduplicateCache;
@@ -31,8 +33,9 @@ public class EventProcessingChainIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Should process Kafka event, save it to DB and cache deviceId")
     void givenKafkaEvent_whenProcessed_thenSavedToDbAndCached() throws InterruptedException {
-        String deviceId = "dev-chain-1";
-        DeviceEvent event = new DeviceEvent("evt-chain-1", deviceId, System.currentTimeMillis(), "ALERT", "{}");
+        Device device = DeviceDataUtil.getDevice1();
+
+        DeviceEvent event = new DeviceEvent("evt-chain-1", device, System.currentTimeMillis(), "ALERT", "{}");
 
         /* Cassandra может быть запущена, но ещё не готова принимать запросы */
         Thread.sleep(2000);
@@ -40,10 +43,10 @@ public class EventProcessingChainIT extends AbstractIntegrationTest {
         /* ждём завершения асинхронной обработки Kafka -> Consumer -> Cassandra -> Cache */
         Thread.sleep(2000);
 
-        StepVerifier.create(publicationRepository.findById(deviceId))
-                .expectNextMatches(pub -> pub.getDeviceId().equals(deviceId))
+        StepVerifier.create(publicationRepository.findById(device.getDeviceId()))
+                .expectNextMatches(pub -> pub.getDeviceId().equals(device.getDeviceId()))
                 .verifyComplete();
 
-        assertThat(deduplicateCache.contains(deviceId)).isTrue();
+        assertThat(deduplicateCache.contains(device)).isTrue();
     }
 }
