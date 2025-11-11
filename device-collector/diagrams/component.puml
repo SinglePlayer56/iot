@@ -25,8 +25,8 @@ ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSph
 ContainerQueue(kafka, "Kafka Cluster", "Kafka", "devices.DLT / devices топики")
 Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
 
-Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализация")
-Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для десериализация")
+Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализации")
+Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для сериализации")
 Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика device-id-topic")
 Rel(kafka_device_dlt_producer, kafka, "Публикации сообщений в DLT при неудачной обработке")
 Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "ShardingSphere JDBC")
