@@ -17,7 +17,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     ContainerDb(postgresql_commands, "PostgreSQL (Commands)", "Реляционная БД", "Отдельная база для команд. Используется Go-сервисом.")
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
-    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка устройств")
+    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
     Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
 
     Boundary(device_collector_data, "Device DB Cluster") {
@@ -64,7 +64,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(failed_events_processor, kafka, "Читает из топика dlt-topic", "Avro")
     Rel(failed_events_processor, minio, "Запись и чтение JSON объектов", "JSON")
 
-    Rel(device_service, kafka, "Публикация в топик devices", "Avro")
+    Rel(device_service, kafka, "Публикация в топики devices/devices-delete", "Avro")
     Rel(device_service, shard_device_collector_1_replica, "Чтение данных", "ShardingSphere JDBC")
     Rel(device_service, shard_device_collector_2_replica, "Чтение данных", "ShardingSphere JDBC")
     Rel(device_service, redis, "Кеширование")

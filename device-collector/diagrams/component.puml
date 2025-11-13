@@ -3,9 +3,9 @@
 
 Container_Boundary(device_collector_service, "Device Collector Service") {
     Component(device_processor, "Device Processor", "Retry/DLT", "Оркестрация обработки устройств: ретраи, отправка в DLT при ошибках")
-    Component(device_service, "Device Service", "Бизнес логика сохранения устройств в базу")
-    Component(device_repo, "Device Dao", "JDBC", "Добавление/обновление информации об устройствах")
-    Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение сообщений из топика devices")
+    Component(device_service, "Device Service", "Бизнес логика сохранения/удаления устройств")
+    Component(device_repo, "Device Dao", "JDBC", "Добавление/обновление/удаление информации об устройствах")
+    Component(kafka_device_consumer, "Kafka Device Consumer", "Spring Kafka", "Чтение сообщений из топика devices/devices-delete")
     Component(metrics_service, "Metrics Service", "Micrometer", "Добавление кастомных метрик")
     Component(configs, "Configs", "Конфигурации")
     Component(aspects, "Aspects", "Аспекты")
@@ -22,12 +22,12 @@ Container_Boundary(device_collector_service, "Device Collector Service") {
 }
 
 ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSphere JDBC)", "Шардированное хранилище данных об устройствах")
-ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt-topic / devices топики")
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt-topic / devices / devices-delete топики")
 Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
 
 Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализации")
 Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для десериализации")
-Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика devices")
+Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика devices/devices-delete")
 Rel(kafka_device_dlt_producer, kafka, "Публикации сообщений в dlt-topic при неудачной обработке")
 Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "ShardingSphere JDBC")
 

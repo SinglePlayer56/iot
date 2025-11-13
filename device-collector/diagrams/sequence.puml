@@ -21,33 +21,67 @@ else Валидное сообщение
     KDC -> DP : Передача сообщения на обработку
 end
 
-loop до 3 попыток
-    DP -> DCS : Передача устройства на обработку
-    DCS -> DCR : Сохранение устройства
-    DCR -> SSJ : Маршрутизация SQL-запроса на нужный шард
-    SSJ -> S : Выполнение SQL
-    alt Успешно
-        S --> SSJ : OK
-        SSJ --> DCR : OK
-        DCR --> DCS : OK
-        DCS --> DP : OK
-        DP -> MS : Инкремент метрики успешной обработки (через аспект)
-        DP --> KDC : Успешное завершение обработки
+group Топик devices save/update device
+    loop до 3 попыток
+        DP -> DCS : Передача устройства на обработку
+        DCS -> DCR : Сохранение устройства
+        DCR -> SSJ : Маршрутизация SQL-запроса на нужный шард
+        SSJ -> S : Выполнение SQL
+        alt Успешно
+            S --> SSJ : OK
+            SSJ --> DCR : OK
+            DCR --> DCS : OK
+            DCS --> DP : OK
+            DP -> MS : Инкремент метрики успешной обработки (через аспект)
+            DP --> KDC : Успешное завершение обработки
+            KDC -> KafkaBroker : ACK топика devices
+        else Ошибка
+            S --> SSJ : Ошибка
+            SSJ --> DCR : Ошибка
+            DCR --> DCS : Ошибка
+            DCS --> DP : Ошибка
+        end
+    end
+
+    alt Все попытки неудачны
+        DP -> DLT : Передача устройства на публикацию
+        DLT -> KafkaBroker : Отправка в dlt-topic топик
+        KafkaBroker --> DLT : ACK dlt-topic
+        DP -> MS : Инкремент метрики ошибок (через аспект)
+        DP --> KDC : Завершение с обработкой ошибки
         KDC -> KafkaBroker : ACK топика devices
-    else Ошибка
-        S --> SSJ : Ошибка
-        SSJ --> DCR : Ошибка
-        DCR --> DCS : Ошибка
-        DCS --> DP : Ошибка
     end
 end
 
-alt Все попытки неудачны
-    DP -> DLT : Передача ошибки на публикацию
-    DLT -> KafkaBroker : Отправка в dlt-topic топик
-    KafkaBroker --> DLT : ACK dlt-topic
-    DP -> MS : Инкремент метрики ошибок (через аспект)
-    DP --> KDC : Завершение с обработкой ошибки
-    KDC -> KafkaBroker : ACK топика devices
+group Топик devices-delete delete device
+    loop до 3 попыток
+        DP -> DCS : Передача устройства на обработку
+        DCS -> DCR : Удаление устройства
+        DCR -> SSJ : Маршрутизация SQL-запроса на нужный шард
+        SSJ -> S : Выполнение SQL
+        alt Успешно
+            S --> SSJ : OK
+            SSJ --> DCR : OK
+            DCR --> DCS : OK
+            DCS --> DP : OK
+            DP -> MS : Инкремент метрики успешной обработки (через аспект)
+            DP --> KDC : Успешное завершение обработки
+            KDC -> KafkaBroker : ACK топика devices-delete
+        else Ошибка
+            S --> SSJ : Ошибка
+            SSJ --> DCR : Ошибка
+            DCR --> DCS : Ошибка
+            DCS --> DP : Ошибка
+        end
+    end
+
+    alt Все попытки неудачны
+        DP -> DLT : Передача устройства на публикацию
+        DLT -> KafkaBroker : Отправка в dlt-topic топик
+        KafkaBroker --> DLT : ACK dlt-topic
+        DP -> MS : Инкремент метрики ошибок (через аспект)
+        DP --> KDC : Завершение с обработкой ошибки
+        KDC -> KafkaBroker : ACK топика devices-delete
+    end
 end
 @enduml
