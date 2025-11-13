@@ -1,0 +1,220 @@
+@startuml
+actor User
+participant "DeviceControllerV1" as DC
+participant "DeviceService" as DS
+participant "RedisCacheService" as RCS
+participant "DeviceRepository" as DR
+participant "KafkaDeviceProducer" as KDP
+participant "MetricsService" as MS
+participant "ShardingSphere JDBC Driver" as SSJ
+participant "Shard N" as S
+participant "Kafka" as K
+
+group Get Device
+User -> DC: GET /devices/{deviceId}
+DC -> DS: getDeviceById(id)
+DS -> RCS: get(id)
+
+alt Cache Hit
+    RCS --> DS: device (из кеша)
+    DS -> MS: increment("device.cache.hit")
+    DS --> DC: device
+    DC --> User: HTTP 200 OK + device
+else Cache Miss
+    RCS --> DS: null(нет в кеше)
+    DS -> MS: increment("device.cache.miss")
+    DS -> DR: findById(id)
+    DR -> SSJ: Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S: Выполнение SQL
+    alt device найден
+        S --> SSJ: device (из БД)
+        SSJ --> DR: device
+        DR --> DS: device
+        DS -> RCS: set(id, value, TTL)
+        DS --> DC: device
+        DC --> User: HTTP 200 OK + device
+    else device не найден
+        S --> SSJ: empty
+        SSJ --> DR: empty
+        DR --> DS: Optional empty
+        DS --> DS: throw DeviceNotFoundException
+        DS -> MS: increment("device.get.error")
+        DS --> DC: DeviceNotFoundException
+        DC --> User: HTTP 404 Not Found
+    end
+end
+end
+
+group Create Device
+User -> DC: POST /devices
+DC -> DS: createDevice(body)
+DS -> RCS: hasKey(deviceId)
+alt Cache hit
+   RCS --> DS: true (ключ найден)
+   DS -> MS: increment("device.cache.hit")
+   DS --> DS: throw DeviceAlreadyExistsException
+   DS -> MS: increment("device.create.error")
+   DS --> DC: DeviceAlreadyExistsException
+   DC --> User: HTTP 400 \nBad Request — устройство уже существует
+else Cache miss
+    RCS --> DS: false (ключ не найден)
+    DS -> MS: increment("device.cache.miss")
+    DS -> DR: existsById(deviceId)
+    DR -> SSJ: Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S: Выполнение SQL
+    alt device найден
+        S --> SSJ: true (из БД)
+        SSJ --> DR: true
+        DR --> DS: true
+        DS --> DS: throw DeviceAlreadyExistsException
+        DS -> MS: increment("device.create.error")
+        DS --> DC: DeviceAlreadyExistsException
+        DC --> User: HTTP 400 \nBad Request — устройство уже существует
+    else device не найден
+        S --> SSJ: false (из БД)
+        SSJ --> DR: false
+        DR --> DS: false
+        DS -> KDP: Передаём device
+        KDP -> K: Публикуем device в топик devices
+        alt ACK получен
+            K --> KDP: ACK
+            KDP --> DS: OK
+            DS -> RCS: set(id, value, TTL)
+            DS -> MS: increment("device.create.success")
+            DS --> DC: device
+            DC --> User: HTTP 202 Accepted
+        else Ошибка публикации
+            K --> KDP: Error / No ACK
+            KDP --> DS: throw DevicePublishException
+            DS -> MS: increment("device.create.error")
+            DS --> DC: DevicePublishException
+            DC --> User: HTTP 500 Internal Server Error
+        end
+    end
+end
+end
+
+group Update Device
+User -> DC: PUT /devices/{deviceId}
+DC -> DS: updateDevice(deviceId, body)
+DS -> RCS: hasKey(deviceId)
+alt Cache hit
+   RCS --> DS: true (ключ найден)
+   DS -> MS: increment("device.cache.hit")
+   DS -> KDP: Передаём device
+   KDP -> K: Публикуем device в топик devices
+   alt ACK получен
+       K --> KDP: ACK
+       KDP --> DS: OK
+       DS -> RCS: set(id, value, TTL)
+       DS -> MS: increment("device.update.success")
+       DS --> DC: device
+       DC --> User: HTTP 202 Accepted
+   else Ошибка публикации
+       K --> KDP: Error / No ACK
+       KDP --> DS: throw DevicePublishException
+       DS -> MS: increment("device.update.error")
+       DS --> DC: DevicePublishException
+       DC --> User: HTTP 500 Internal Server Error
+   end
+else Cache miss
+    RCS --> DS: false (ключ не найден)
+    DS -> MS: increment("device.cache.miss")
+    DS -> DR: existsById(id)
+    DR -> SSJ: Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S: Выполнение SQL
+    alt device найден
+        S --> SSJ: true (из БД)
+        SSJ --> DR: true
+        DR --> DS: true
+        DS -> KDP: Передаём device
+        KDP -> K: Публикуем device в топик devices
+        alt ACK получен
+            K --> KDP: ACK
+            KDP --> DS: OK
+            DS -> RCS: set(id, value, TTL)
+            DS -> MS: increment("device.update.success")
+            DS --> DC: device
+            DC --> User: HTTP 202 Accepted
+        else Ошибка публикации
+            K --> KDP: Error / No ACK
+            KDP --> DS: throw DevicePublishException
+            DS -> MS: increment("device.update.error")
+            DS --> DC: DevicePublishException
+            DC --> User: HTTP 500 Internal Server Error
+        end
+    else device не найден
+        S --> SSJ: false (из БД)
+        SSJ --> DR: false
+        DR --> DS: false
+        DS --> DS: throw DeviceNotFoundException
+        DS -> MS: increment("device.update.error")
+        DS --> DC: DeviceNotFoundException
+        DC --> User: HTTP 404 Not Found
+    end
+end
+end
+
+group Delete Device
+User -> DC: DELETE /devices/{deviceId}
+DC -> DS: deleteDevice(deviceId)
+DS -> RCS: hasKey(deviceId)
+
+alt Cache hit
+   RCS --> DS: true (ключ найден)
+   DS -> MS: increment("device.cache.hit")
+   DS -> KDP: Передаём deviceId
+   KDP -> K: Публикуем deviceId в топик devices-delete
+   alt ACK получен
+       K --> KDP: ACK
+       KDP --> DS: OK
+       DS -> RCS: delete(deviceId)
+       DS -> MS: increment("device.delete.success")
+       DS --> DC: void
+       DC --> User: HTTP 202 Accepted
+   else Ошибка публикации
+       K --> KDP: Error / No ACK
+       KDP --> DS: throw DevicePublishException
+       DS -> MS: increment("device.delete.error")
+       DS --> DC: DevicePublishException
+       DC --> User: HTTP 500 Internal Server Error
+   end
+else Cache miss
+    RCS --> DS: false (ключ не найден)
+    DS -> MS: increment("device.cache.miss")
+    DS -> DR: existsById(id)
+    DR -> SSJ: Маршрутизация SQL-запроса на нужный шард
+    SSJ -> S: Выполнение SQL
+    alt device найден
+        S --> SSJ: true (из БД)
+        SSJ --> DR: true
+        DR --> DS: true
+        DS -> KDP: Передаём deviceId
+        KDP -> K: Публикуем deviceId в топик devices-delete
+        alt ACK получен
+            K --> KDP: ACK
+            KDP --> DS: OK
+            DS -> RCS: delete(deviceId)
+            DS -> MS: increment("device.delete.success")
+            DS --> DC: void
+            DC --> User: 202 Accepted
+        else Ошибка публикации
+            K --> KDP: Error / No ACK
+            KDP --> DS: throw DevicePublishException
+            DS -> MS: increment("device.delete.error")
+            DS --> DC: DevicePublishException
+            DC --> User: HTTP 500 Internal Server Error
+        end
+    else device не найден
+        S --> SSJ: false (из БД)
+        SSJ --> DR: false
+        DR --> DS: false
+        DS --> DS: throw DeviceNotFoundException
+        DS -> MS: increment("device.delete.error")
+        DS --> DC: DeviceNotFoundException
+        DC --> User: HTTP 404 Not Found
+    end
+end
+end
+
+@enduml
