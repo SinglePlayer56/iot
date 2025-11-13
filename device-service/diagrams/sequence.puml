@@ -79,9 +79,8 @@ else Cache miss
         alt ACK получен
             K --> KDP: ACK
             KDP --> DS: OK
-            DS -> RCS: set(id, value, TTL)
             DS -> MS: increment("device.create.success")
-            DS --> DC: device
+            DS --> DC: void
             DC --> User: HTTP 202 Accepted
         else Ошибка публикации
             K --> KDP: Error / No ACK
@@ -106,9 +105,9 @@ alt Cache hit
    alt ACK получен
        K --> KDP: ACK
        KDP --> DS: OK
-       DS -> RCS: set(id, value, TTL)
+       DS -> RCS: delete(deviceId)
        DS -> MS: increment("device.update.success")
-       DS --> DC: device
+       DS --> DC: void
        DC --> User: HTTP 202 Accepted
    else Ошибка публикации
        K --> KDP: Error / No ACK
@@ -132,9 +131,9 @@ else Cache miss
         alt ACK получен
             K --> KDP: ACK
             KDP --> DS: OK
-            DS -> RCS: set(id, value, TTL)
+            DS -> RCS: delete(id, value, TTL)
             DS -> MS: increment("device.update.success")
-            DS --> DC: device
+            DS --> DC: void
             DC --> User: HTTP 202 Accepted
         else Ошибка публикации
             K --> KDP: Error / No ACK
