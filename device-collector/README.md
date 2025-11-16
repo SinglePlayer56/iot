@@ -106,26 +106,29 @@
 
 ## Переменные окружения
 
-| Переменная                                | Описание                                                 | Пример                                                |
-|-------------------------------------------|-----------------------------------------------------------|-------------------------------------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT`             | Адрес OTLP-экспортера                                    | `http://alloy:4318`                                   |
-| `OTEL_EXPORTER_OTLP_PROTOCOL`             | Протокол для OTLP                                        | `http/protobuf`                                       |
-| `OTEL_METRICS_EXPORTER`                   | Экспорт метрик                                          | `none`                                                |
-| `OTEL_TRACES_EXPORTER`                    | Экспорт трейсов                                         | `otlp`                                                |
-| `OTEL_LOGS_EXPORTER`                      | Экспорт логов                                           | `none`                                                |
-| `OTEL_RESOURCE_ATTRIBUTES`                | Атрибуты ресурса OTEL (версия и окружение деплоя)         | `service.version=1.0.0,deployment.environment=docker` |
-| `KAFKA_ADDRESS`                           | Адрес брокера Kafka                                      | `kafka:9092`                                          |
-| `SCHEMA_REGISTRY_ADDRESS`                 | Адрес Schema Registry                                    | `schema-registry:8081`                                |
-| `POSTGRES_DEVICES_DB_NAME`                  | Имя базы данных устройств                                    | devices                                               |
-| `SHARD_0_MASTER_URL`                        | Адрес мастера шарда 0                                        | postgres-devices-shard-0-master:5432                  |
-| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 0                                        | postgres-devices-shard-0-replica:5432                 |
-| `SHARD_1_MASTER_URL`                        | Адрес мастера шарда 1                                        | postgres-devices-shard-1-master:5432                  |
-| `POSTGRES_DEVICES_USER_SHARD_0_MASTER`      | Пользователь мастера шарда 0                                 | postgres                                              |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER`  | Пароль мастера шарда 0                                       | postgres                                                |
-| `POSTGRES_DEVICES_USER_SHARD_0_REPLICA`     | Пользователь реплики шарда 0                                 | postgres                                |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA` | Пароль реплики шарда 0                                       | postgres                                                |
-| `POSTGRES_DEVICES_USER_SHARD_1_MASTER`      | Пользователь мастера шарда 1                                 | postgres                                 |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER`  | Пароль мастера шарда 1                                       | postgres                                                |
+| Переменная                                  | Описание                                          | Пример                                                |
+|---------------------------------------------|---------------------------------------------------|-------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`               | Адрес OTLP-экспортера                             | `http://alloy:4318`                                   |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`               | Протокол для OTLP                                 | `http/protobuf`                                       |
+| `OTEL_METRICS_EXPORTER`                     | Экспорт метрик                                    | `none`                                                |
+| `OTEL_TRACES_EXPORTER`                      | Экспорт трейсов                                   | `otlp`                                                |
+| `OTEL_LOGS_EXPORTER`                        | Экспорт логов                                     | `none`                                                |
+| `OTEL_RESOURCE_ATTRIBUTES`                  | Атрибуты ресурса OTEL (версия и окружение деплоя) | `service.version=1.0.0,deployment.environment=docker` |
+| `KAFKA_ADDRESS`                             | Адрес брокера Kafka                               | `kafka:9092`                                          |
+| `SCHEMA_REGISTRY_ADDRESS`                   | Адрес Schema Registry                             | `schema-registry:8081`                                |
+| `POSTGRES_DEVICES_DB_NAME`                  | Имя базы данных устройств                         | devices                                               |
+| `SHARD_0_MASTER_URL`                        | Адрес мастера шарда 0                             | postgres-devices-shard-0-master:5432                  |
+| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 0                             | postgres-devices-shard-0-replica:5432                 |
+| `SHARD_1_MASTER_URL`                        | Адрес мастера шарда 1                             | postgres-devices-shard-1-master:5432                  |
+| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 1                             | postgres-devices-shard-1-replica:5432                 |
+| `POSTGRES_DEVICES_USER_SHARD_0_MASTER`      | Пользователь мастера шарда 0                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER`  | Пароль мастера шарда 0                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_0_REPLICA`     | Пользователь реплики шарда 0                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA` | Пароль реплики шарда 0                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_1_MASTER`      | Пользователь мастера шарда 1                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER`  | Пароль мастера шарда 1                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_1_REPLICA`     | Пользователь реплики шарда 01                     | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA` | Пароль реплики шарда 1                            | postgres                                              |
 
 ---
 
