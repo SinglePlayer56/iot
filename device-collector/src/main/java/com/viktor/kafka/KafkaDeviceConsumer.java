@@ -1,6 +1,6 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.service.device.DeviceProcessor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
@@ -32,7 +32,7 @@ public class KafkaDeviceConsumer {
 
     @WithSpan("consume-devices")
     @KafkaListener(topics = "${spring.kafka.consumer.read-topic}", groupId = "${spring.kafka.consumer.group-id}")
-    public void listen(List<ConsumerRecord<String, Device>> records, Acknowledgment ack) {
+    public void listen(List<ConsumerRecord<String, DeviceAvro>> records, Acknowledgment ack) {
         var devices = records.stream()
                 .map(ConsumerRecord::value)
                 .toList();
@@ -71,7 +71,7 @@ public class KafkaDeviceConsumer {
     }
 
 
-    private Mono<Void> process(List<Device> devices, Acknowledgment ack) {
+    private Mono<Void> process(List<DeviceAvro> devices, Acknowledgment ack) {
         return deviceProcessor.processDevices(devices)
                 .then(Mono.fromRunnable(() -> {
                     ack.acknowledge();

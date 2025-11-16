@@ -1,7 +1,7 @@
 package com.viktor.service;
 
-import com.viktor.avro.Device;
-import com.viktor.avro.DeviceEvent;
+import com.viktor.avro.DeviceAvro;
+import com.viktor.avro.DeviceEventAvro;
 import com.viktor.repository.EventCollectorRepository;
 import com.viktor.service.device_publication.DeviceIdPublicationService;
 import com.viktor.service.event_collector.EventCollectorServiceImpl;
@@ -40,9 +40,9 @@ public class EventCollectorServiceTest {
     @Test
     @DisplayName("Should save all events and publish distinct deviceIds")
     void givenListOfEvents_whenProcessEvents_thenSaveEachAndPublishDistinctDeviceIds() {
-        Device device1 = new Device();
+        DeviceAvro device1 = new DeviceAvro();
         device1.setDeviceId("dev-1");
-        DeviceEvent event1 = DeviceEvent.newBuilder()
+        DeviceEventAvro event1 = DeviceEventAvro.newBuilder()
                 .setDevice(device1)
                 .setEventId("e1")
                 .setTimestamp(System.currentTimeMillis())
@@ -50,9 +50,9 @@ public class EventCollectorServiceTest {
                 .setPayload("payload1")
                 .build();
 
-        Device device2 = new Device();
+        DeviceAvro device2 = new DeviceAvro();
         device2.setDeviceId("dev-2");
-        DeviceEvent event2 = DeviceEvent.newBuilder()
+        DeviceEventAvro event2 = DeviceEventAvro.newBuilder()
                 .setDevice(device2)
                 .setEventId("e2")
                 .setTimestamp(System.currentTimeMillis())
@@ -60,9 +60,9 @@ public class EventCollectorServiceTest {
                 .setPayload("payload2")
                 .build();
 
-        Device device3 = new Device();
+        DeviceAvro device3 = new DeviceAvro();
         device3.setDeviceId("dev-3");
-        DeviceEvent event3 = DeviceEvent.newBuilder()
+        DeviceEventAvro event3 = DeviceEventAvro.newBuilder()
                 .setDevice(device3)
                 .setEventId("e3")
                 .setTimestamp(System.currentTimeMillis())
@@ -71,7 +71,7 @@ public class EventCollectorServiceTest {
                 .build();
 
         BDDMockito.given(repository.save(any())).willReturn(Mono.empty());
-        BDDMockito.given(deviceIdPublicationService.processDevice(ArgumentMatchers.any(Device.class)))
+        BDDMockito.given(deviceIdPublicationService.processDevice(ArgumentMatchers.any(DeviceAvro.class)))
                 .willReturn(Mono.empty());
 
         service.processEvents(List.of(event1, event2, event3)).block();
@@ -87,7 +87,7 @@ public class EventCollectorServiceTest {
     @Test
     @DisplayName("Should perform no actions when event list is empty")
     void givenEmptyEventList_whenProcessEvents_thenNoInteractions() {
-        List<DeviceEvent> emptyList = List.of();
+        List<DeviceEventAvro> emptyList = List.of();
 
         service.processEvents(emptyList).block();
 
@@ -99,9 +99,9 @@ public class EventCollectorServiceTest {
     @DisplayName("Should save and publish deviceId successfully for single event")
     void givenSingleEvent_whenProcessEvents_thenCompletesSuccessfully() {
         String deviceId = "dev-3";
-        Device device = new Device();
+        DeviceAvro device = new DeviceAvro();
         device.setDeviceId(deviceId);
-        DeviceEvent event = DeviceEvent.newBuilder()
+        DeviceEventAvro event = DeviceEventAvro.newBuilder()
                 .setDevice(device)
                 .setEventId("e4")
                 .setTimestamp(System.currentTimeMillis())

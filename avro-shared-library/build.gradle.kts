@@ -1,3 +1,5 @@
+val libVersion = "1.0.2"
+
 plugins {
     `java-library`
     `maven-publish`
@@ -5,7 +7,7 @@ plugins {
 }
 
 group = "com.viktor"
-version = "1.0.1"
+version = libVersion
 description = ""
 
 java {
@@ -71,7 +73,7 @@ publishing {
             from(components["java"])
             groupId = "com.viktor"
             artifactId = "avro-shared-library"
-            version = "1.0.1"
+            version = libVersion
         }
     }
 

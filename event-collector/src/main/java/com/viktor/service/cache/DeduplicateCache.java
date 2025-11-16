@@ -2,7 +2,7 @@ package com.viktor.service.cache;
 
 import com.datastax.oss.driver.shaded.guava.common.hash.BloomFilter;
 import com.datastax.oss.driver.shaded.guava.common.hash.Funnels;
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.entity.DevicePublication;
 import com.viktor.repository.DevicePublicationRepository;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -40,7 +40,7 @@ public class DeduplicateCache {
     }
 
     @WithSpan("add-device-in-cache")
-    public void add(Device device) {
+    public void add(DeviceAvro device) {
         lock.writeLock().lock();
         try {
             log.info("Add device {} in cache", device);
@@ -51,7 +51,7 @@ public class DeduplicateCache {
         }
     }
 
-    public boolean contains(Device device) {
+    public boolean contains(DeviceAvro device) {
         lock.readLock().lock();
         try {
             var key = buildKey(device);
@@ -61,7 +61,7 @@ public class DeduplicateCache {
         }
     }
 
-    private String buildKey(Device device) {
+    private String buildKey(DeviceAvro device) {
         return device.getDeviceId() + "|" + device.getDeviceType() + "|" + device.getMeta();
     }
 

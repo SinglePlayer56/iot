@@ -1,7 +1,7 @@
 package com.viktor.it;
 
-import com.viktor.avro.Device;
-import com.viktor.avro.DeviceEvent;
+import com.viktor.avro.DeviceAvro;
+import com.viktor.avro.DeviceEventAvro;
 import com.viktor.repository.DevicePublicationRepository;
 import com.viktor.service.cache.DeduplicateCache;
 import com.viktor.util.DeviceDataUtil;
@@ -33,9 +33,9 @@ public class EventProcessingChainIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("Should process Kafka event, save it to DB and cache deviceId")
     void givenKafkaEvent_whenProcessed_thenSavedToDbAndCached() throws InterruptedException {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
 
-        DeviceEvent event = new DeviceEvent("evt-chain-1", device, System.currentTimeMillis(), "ALERT", "{}");
+        DeviceEventAvro event = new DeviceEventAvro("evt-chain-1", device, System.currentTimeMillis(), "ALERT", "{}");
 
         /* Cassandra может быть запущена, но ещё не готова принимать запросы */
         Thread.sleep(2000);

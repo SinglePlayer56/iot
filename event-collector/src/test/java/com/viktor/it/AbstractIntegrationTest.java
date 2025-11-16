@@ -117,13 +117,13 @@ public abstract class AbstractIntegrationTest {
         registerSchema("events-value", """
                 {
                    "type": "record",
-                   "name": "DeviceEvent",
+                   "name": "DeviceEventAvro",
                    "namespace": "com.viktor.avro",
                    "fields": [
                      { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
                      { "name": "device", "type": {
                          "type": "record",
-                         "name": "Device",
+                         "name": "DeviceAvro",
                          "namespace": "com.viktor.avro",
                          "fields": [
                            {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -143,7 +143,7 @@ public abstract class AbstractIntegrationTest {
         registerSchema("devices-value", """
                 {
                    "type": "record",
-                   "name": "Device",
+                   "name": "DeviceAvro",
                    "namespace": "com.viktor.avro",
                    "fields": [
                      {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},

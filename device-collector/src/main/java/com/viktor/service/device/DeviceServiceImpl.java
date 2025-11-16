@@ -1,6 +1,6 @@
 package com.viktor.service.device;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.mapper.device.DeviceMapper;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -21,7 +21,7 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @WithSpan("save-device-service")
-    public Mono<Void> saveDevice(Device device) {
+    public Mono<Void> saveDevice(DeviceAvro device) {
         log.info("Saving device {}", device.getDeviceId());
         return Mono.<Void>fromCallable(() -> {
                     var entity = deviceMapper.toDeviceEntity(device);

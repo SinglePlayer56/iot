@@ -1,6 +1,6 @@
 package com.viktor.it;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.utils.DeviceUtilData;
@@ -35,10 +35,10 @@ public class DeviceProcessorBatchIT extends AbstractIntegrationTest {
     @DisplayName("Given multiple devices When batch processed Then each saved to correct shard")
     void shouldProcessBatchAndRouteByShard() {
 
-        Device dev1 = DeviceUtilData.getDevice1();
-        Device dev2 = DeviceUtilData.getDevice2();
+        DeviceAvro dev1 = DeviceUtilData.getDevice1();
+        DeviceAvro dev2 = DeviceUtilData.getDevice2();
 
-        List<Device> batch = List.of(dev1, dev2);
+        List<DeviceAvro> batch = List.of(dev1, dev2);
 
         deviceProcessor.processDevices(batch).blockLast(Duration.ofSeconds(10));
 

@@ -1,6 +1,6 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class KafkaDeviceProducer {
     private final String writeTopic;
 
     @WithSpan("publishing-in-devices-topic")
-    public Mono<SendResult<String, Object>> send(Device device) {
+    public Mono<SendResult<String, Object>> send(DeviceAvro device) {
         return Mono.fromFuture(() -> {
             ProducerRecord<String, Object> record = new ProducerRecord<>(writeTopic, device);
             var traceId = Span.current().getSpanContext().getTraceId();

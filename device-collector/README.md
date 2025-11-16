@@ -15,7 +15,7 @@
 ```avroschema
 {
   "type": "record",
-  "name": "Device",
+  "name": "DeviceAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},

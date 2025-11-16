@@ -1,6 +1,6 @@
 package com.viktor.service;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.repository.DevicePublicationRepository;
 import com.viktor.service.cache.DeduplicateCache;
 import com.viktor.util.DeviceDataUtil;
@@ -69,7 +69,7 @@ public class DeduplicateCacheTest {
     @Test
     @DisplayName("Should return false for unknown deviceId")
     void givenDeviceIdNotAdded_whenContains_thenReturnsFalse() {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
 
         boolean exists = cache.contains(device);
 
@@ -82,7 +82,7 @@ public class DeduplicateCacheTest {
     @Test
     @DisplayName("Should return true for added device and false after its data changes")
     void givenAddedDevice_whenMetaUpdated_thenContainsReturnsFalse() {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
 
         cache.add(device);
         boolean exists = cache.contains(device);

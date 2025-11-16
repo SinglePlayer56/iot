@@ -1,6 +1,6 @@
 package com.viktor.service;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.entity.DeviceEntity;
 import com.viktor.mapper.device.DeviceMapper;
@@ -32,7 +32,7 @@ public class DeviceServiceImplTest {
 
     @Test
     void givenValidDevice_whenSaveDevice_thenDaoSaveIsCalled() {
-        Device device = DeviceUtilData.getDevice1();
+        DeviceAvro device = DeviceUtilData.getDevice1();
         DeviceEntity entity = new DeviceEntity();
 
         given(deviceMapper.toDeviceEntity(device)).willReturn(entity);

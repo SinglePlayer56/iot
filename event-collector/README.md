@@ -15,13 +15,13 @@
 ```avroschema
 {
   "type": "record",
-  "name": "DeviceEvent",
+  "name": "DeviceEventAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
     { "name": "device", "type": {
       "type": "record",
-      "name": "Device",
+      "name": "DeviceAvro",
       "namespace": "com.viktor.avro",
       "fields": [
         {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -43,7 +43,7 @@
 ```json
 {
   "type": "record",
-  "name": "Device",
+  "name": "DeviceAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
