@@ -1,0 +1,103 @@
+openapi: 3.0.0
+info:
+  title: Device Service API
+  description: REST API для взаимодействия с Device сервисом.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8083/api/
+
+paths:
+  /v1/devices/{deviceId}:
+    get:
+      summary: Get device by id
+      operationId: findById
+      tags:
+        - Device
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDto'
+
+    put:
+      summary: "Update device"
+      operationId: "updateDevice"
+      tags:
+        - Device
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceDto'
+      responses:
+        '202':
+          description: "Accepted"
+
+    delete:
+      summary: "Delete device"
+      operationId: "deleteDeviceById"
+      tags:
+        - Device
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: "Accepted"
+
+  /v1/devices:
+    post:
+      summary: "Create device"
+      operationId: "createDevice"
+      tags:
+        - Device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceDto'
+      responses:
+        '202':
+          description: "Accepted"
+
+
+
+
+components:
+  schemas:
+    DeviceDto:
+      type: object
+      required: [
+        deviceId,
+        deviceType,
+        createdAt,
+        meta
+      ]
+      properties:
+        deviceId:
+          type: string
+        deviceType:
+          type: string
+        createdAt:
+          type: number
+        meta:
+          type: string
