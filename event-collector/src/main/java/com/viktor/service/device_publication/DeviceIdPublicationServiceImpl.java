@@ -1,6 +1,6 @@
 package com.viktor.service.device_publication;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.entity.DevicePublication;
 import com.viktor.kafka.KafkaDeviceProducer;
 import com.viktor.repository.DevicePublicationRepository;
@@ -22,7 +22,7 @@ public class DeviceIdPublicationServiceImpl implements DeviceIdPublicationServic
 
     @Override
     @WithSpan("process-device")
-    public Mono<Void> processDevice(Device device) {
+    public Mono<Void> processDevice(DeviceAvro device) {
         log.info("Processing device {}", device);
         if (deduplicateCache.contains(device)) {
             return Mono.empty();

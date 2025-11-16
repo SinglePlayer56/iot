@@ -1,6 +1,6 @@
 package com.viktor.it;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.utils.DeviceUtilData;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +31,7 @@ public class KafkaDeviceConsumerIT extends AbstractIntegrationTest {
     @DisplayName("Consume device message from Kafka")
     void shouldConsumeDeviceMessageAndProcessIt() {
 
-        Device device = DeviceUtilData.getDevice1();
+        DeviceAvro device = DeviceUtilData.getDevice1();
 
         kafkaTemplate.send("devices", device.getDeviceId(), device);
 

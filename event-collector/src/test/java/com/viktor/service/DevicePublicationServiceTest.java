@@ -1,6 +1,6 @@
 package com.viktor.service;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.entity.DevicePublication;
 import com.viktor.kafka.KafkaDeviceProducer;
 import com.viktor.repository.DevicePublicationRepository;
@@ -44,7 +44,7 @@ public class DevicePublicationServiceTest {
     @Test
     @DisplayName("Should send, save, and cache deviceId when not already cached")
     void givenDeviceIdNotInCache_whenProcessDevice_thenSendSaveAndAddToCache() {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
         DevicePublication devicePublication = DevicePublicationDataUtil.getDevicePublication1();
 
         BDDMockito.given(cache.contains(device)).willReturn(false);
@@ -63,7 +63,7 @@ public class DevicePublicationServiceTest {
     @Test
     @DisplayName("Should do nothing when deviceId already exists in cache")
     void givenDeviceIdAlreadyInCache_whenProcessDevice_thenNoActionPerformed() {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
 
         BDDMockito.given(cache.contains(device)).willReturn(true);
 
@@ -71,13 +71,13 @@ public class DevicePublicationServiceTest {
 
         BDDMockito.then(producer).shouldHaveNoInteractions();
         BDDMockito.then(repository).shouldHaveNoInteractions();
-        BDDMockito.then(cache).should(never()).add(ArgumentMatchers.any(Device.class));
+        BDDMockito.then(cache).should(never()).add(ArgumentMatchers.any(DeviceAvro.class));
     }
 
     @Test
     @DisplayName("Should complete successfully when processing uncached deviceId")
     void givenDeviceIdNotInCache_whenProcessDevice_thenCompletesSuccessfully() {
-        Device device = DeviceDataUtil.getDevice1();
+        DeviceAvro device = DeviceDataUtil.getDevice1();
         DevicePublication devicePublication = DevicePublicationDataUtil.getDevicePublication1();
 
         BDDMockito.given(cache.contains(device)).willReturn(false);

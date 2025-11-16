@@ -1,6 +1,6 @@
 package com.viktor.mapper.device;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.entity.DeviceEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,5 +12,5 @@ public interface DeviceMapper {
     @Mapping(target = "deviceType", source = "deviceType")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "meta", source = "meta")
-    DeviceEntity toDeviceEntity(Device device);
+    DeviceEntity toDeviceEntity(DeviceAvro device);
 }

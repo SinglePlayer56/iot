@@ -1,6 +1,6 @@
 package com.viktor.it;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.exception.ShardErrorException;
 import com.viktor.utils.DeviceUtilData;
@@ -36,7 +36,7 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
     @MockitoSpyBean
     private DeviceDao deviceDao;
 
-    private KafkaConsumer<String, Device> createDltConsumer() {
+    private KafkaConsumer<String, DeviceAvro> createDltConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "dlt-test-group");
@@ -64,7 +64,7 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
     @DisplayName("Given shard failure When processing device Then message ends up in DLT")
     void shouldSendToDltOnShardFailure() throws Exception {
 
-        Device device = DeviceUtilData.getDevice1();
+        DeviceAvro device = DeviceUtilData.getDevice1();
 
         Mockito.doThrow(new ShardErrorException("DB failure", device.getDeviceId()))
                 .when(deviceDao)
@@ -74,18 +74,18 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
 
         Thread.sleep(5000);
 
-        try (KafkaConsumer<String, Device> dltConsumer = createDltConsumer()) {
+        try (KafkaConsumer<String, DeviceAvro> dltConsumer = createDltConsumer()) {
 
             dltConsumer.subscribe(List.of("devices.DLT"));
 
-            ConsumerRecords<String, Device> records =
+            ConsumerRecords<String, DeviceAvro> records =
                     dltConsumer.poll(Duration.ofSeconds(10));
 
             assertThat(records.count())
                     .as("DLT topic must contain 1 failed message")
                     .isEqualTo(1);
 
-            Device dltMsg = records.iterator().next().value();
+            DeviceAvro dltMsg = records.iterator().next().value();
 
             assertThat(dltMsg.getDeviceId())
                     .isEqualTo(device.getDeviceId());

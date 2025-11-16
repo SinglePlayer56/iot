@@ -5,7 +5,7 @@ val versions = mapOf(
     "avroSerializer" to "7.7.5",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.1",
+    "avroSharedLibrary" to "1.0.2",
     "shardingJdbc" to "5.5.2",
     "mapStruct" to "1.6.3",
     "mapStructBinding" to "0.2.0",

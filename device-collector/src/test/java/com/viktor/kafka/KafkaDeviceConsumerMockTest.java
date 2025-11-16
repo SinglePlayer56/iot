@@ -1,6 +1,6 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.utils.DeviceUtilData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -34,10 +34,10 @@ public class KafkaDeviceConsumerMockTest {
     void givenAvroRecord_whenConsumed_thenProcessorInvoked_andAcked() {
         var device = DeviceUtilData.getDevice1();
 
-        ConsumerRecord<String, Device> record =
+        ConsumerRecord<String, DeviceAvro> record =
                 new ConsumerRecord<>("devices", 0, 0L, "key", device);
 
-        List<ConsumerRecord<String, Device>> list = List.of(record);
+        List<ConsumerRecord<String, DeviceAvro>> list = List.of(record);
 
         BDDMockito.given(processor.processDevices(anyList()))
                 .willReturn(Flux.empty());

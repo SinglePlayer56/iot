@@ -1,6 +1,6 @@
 package com.viktor.service.event_collector;
 
-import com.viktor.avro.DeviceEvent;
+import com.viktor.avro.DeviceEventAvro;
 import com.viktor.entity.DeviceEventByDevice;
 import com.viktor.repository.EventCollectorRepository;
 import com.viktor.service.device_publication.DeviceIdPublicationService;
@@ -23,19 +23,19 @@ public class EventCollectorServiceImpl implements EventCollectorService {
 
     @Override
     @WithSpan("process-events")
-    public Mono<Void> processEvents(List<DeviceEvent> events) {
+    public Mono<Void> processEvents(List<DeviceEventAvro> events) {
         log.info("Processing events: {}", events.size());
         return Flux.fromIterable(events)
                 .flatMap(this::saveEvent)
                 .thenMany(Flux.fromIterable(events)
-                        .map(DeviceEvent::getDevice)
+                        .map(DeviceEventAvro::getDevice)
                         .distinct()
                         .flatMap(deviceIdPublicationService::processDevice))
                 .then();
     }
 
     @WithSpan("save-event")
-    private Mono<DeviceEventByDevice> saveEvent(DeviceEvent deviceEvent) {
+    private Mono<DeviceEventByDevice> saveEvent(DeviceEventAvro deviceEvent) {
         DeviceEventByDevice event = DeviceEventByDevice.builder()
                 .deviceId(deviceEvent.getDevice().getDeviceId())
                 .eventId(deviceEvent.getEventId())
