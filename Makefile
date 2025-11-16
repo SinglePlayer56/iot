@@ -10,9 +10,9 @@ MONITORING_SERVICES ?= grafana prometheus alloy tempo loki
 
 INFRA_SERVICES ?= $(MONITORING_SERVICES) postgres_commands postgres_camunda postgres_keycloak  \
 			postgres-devices-shard-0-master postgres-devices-shard-1-master \
-			postgres-devices-shard-0-replica \
+			postgres-devices-shard-0-replica postgres-devices-shard-1-replica \
             postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
-            postgres-exporter-devices-shard-0-replica \
+            postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica \
             redis keycloak kafka schema-registry cassandra camunda minio postgres-exporter-commands \
             postgres-exporter-keycloak postgres-exporter-camunda kafka-exporter \
             redis-exporter
@@ -23,12 +23,13 @@ EVENT_COLLECTOR_SERVICES ?= event-collector cassandra $(KAFKA_SERVICES)
 
 EVENT_COLLECTOR_MONITORING ?= $(MONITORING_SERVICES) kafka-exporter
 
-DEVICES_DB_CLUSTER ?= postgres-devices-shard-0-master postgres-devices-shard-0-replica postgres-devices-shard-1-master
+DEVICES_DB_CLUSTER ?= postgres-devices-shard-0-master postgres-devices-shard-1-master \
+					postgres-devices-shard-0-replica postgres-devices-shard-1-replica
 
 DEVICE_COLLECTOR_SERVICES ?= device-collector $(KAFKA_SERVICES) $(DEVICES_DB_CLUSTER)
 
 DEVICE_COLLECTOR_MONITORING ?= device-collector $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-0-master \
-postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-replica
+postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 

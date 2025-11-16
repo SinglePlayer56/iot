@@ -24,6 +24,10 @@ scrape_configs:
     static_configs:
       - targets: [ 'postgres-exporter-devices-shard-1-master:9187' ]
 
+  - job_name: postgres-exporter-devices-shard-1-replica
+    static_configs:
+      - targets: [ 'postgres-exporter-devices-shard-1-replica:9187' ]
+
   - job_name: postgres-exporter-keycloak
     static_configs:
       - targets: [ 'postgres-exporter-keycloak:9187' ]
