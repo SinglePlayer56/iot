@@ -16,7 +16,7 @@ public class KafkaDeviceDltProducer {
 
     private final KafkaTemplate<Object, Object> kafkaTemplate;
 
-    @Value("${spring.kafka.consumer.read-topic}")
+    @Value("${spring.kafka.consumer.save-update-topic}")
     private String topicName;
 
     @WithSpan("publish-dlt")

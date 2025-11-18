@@ -157,6 +157,8 @@ public abstract class AbstractIntegrationTest {
 
         registerSchema("devices-value", schema);
 
+        registerSchema("devices-delete-value", schema);
+
         registerSchema("devices.DLT-value", schema);
     }
 

@@ -1,7 +1,8 @@
 # Device Collector Service
 
 Микросервис **Device Collector Service**:
-- подписывается на Kafka-топик `devices`
+- подписывается на Kafka-топик `devices` для добавления и обновления устройств
+- подписывается на Kafka-топик `devices-delete` для удаления устройств
 - получает события в формате Avro (валидация через Schema Registry)
 - сохраняет/обновляет устройство в PostgreSQL кластере
 - публикует необработанные сообщения в `devices.DLT` топик
@@ -10,7 +11,7 @@
 
 ## Avro-схемы
 
-### `devices-value`/`devices.DLT-value` (для топиков `devices` и `devices.DLT`)
+### `devices-value`/ `devices-delete-value` /`devices.DLT-value` (для топиков `devices`, `devices-delete` и `devices.DLT`)
 
 ```avroschema
 {
@@ -29,8 +30,9 @@
 > ⚠️ **Важно:** Avro-схемы необходимо добавить вручную в Schema Registry через Kafka UI (http://localhost:8070)
 > 1. Открой `Schema Registry`
 > 2. Добавь схему для `devices-value`
-> 3. Добавь схему для `devices.DLT-value`
-> 4. После этого можно публиковать сообщения в топик `devices`.
+> 3. Добавь схему для `devices-delete-value`
+> 4. Добавь схему для `devices.DLT-value`
+> 5. После этого можно публиковать сообщения в топик `devices`.
 
 ---
 
@@ -65,7 +67,7 @@
 
 ---
 
-## Пример отправки события в топик `devices`
+## Пример отправки события в топики `devices` и `devices-delete`
 
 ```json
 {
