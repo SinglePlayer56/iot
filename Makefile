@@ -31,6 +31,10 @@ DEVICE_COLLECTOR_SERVICES ?= device-collector $(KAFKA_SERVICES) $(DEVICES_DB_CLU
 DEVICE_COLLECTOR_MONITORING ?= device-collector $(MONITORING_SERVICES) kafka-exporter postgres-exporter-devices-shard-0-master \
 postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica
 
+DEVICE_SERVICE = $(DEVICE_COLLECTOR_SERVICES)
+
+DEVICE_SERVICE_MONITORING ?= $(DEVICE_COLLECTOR_MONITORING)
+
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
 ifeq ($(OS),Windows_NT)
@@ -162,3 +166,31 @@ device-collector-monitoring-stop:
 
 device-collector-monitoring-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_COLLECTOR_SERVICES) $(DEVICE_COLLECTOR_MONITORING)
+
+device-service-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_SERVICE)
+
+device-service-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_SERVICE) --build
+	@$(MAKE) docker-proxy-stop
+
+device-service-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_SERVICE)
+
+device-service-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_SERVICE)
+
+device-service-monitoring-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_SERVICE) $(DEVICE_SERVICE_MONITORING)
+
+device-service-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(DEVICE_SERVICE) $(DEVICE_SERVICE_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
+
+device-service-monitoring-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(DEVICE_SERVICE) $(DEVICE_SERVICE_MONITORING)
+
+device-service-monitoring-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_SERVICE) $(DEVICE_SERVICE_MONITORING)
