@@ -28,10 +28,29 @@ public class DeviceProcessor {
                 .flatMap(group -> group.concatMap(this::processDevice), 8);
     }
 
+    @WithSpan("delete-devices")
+    public Flux<Void> deleteDevices(List<DeviceAvro> devices) {
+        return Flux.fromIterable(devices)
+                .groupBy(DeviceAvro::getDeviceId)
+                .flatMap(group -> group.concatMap(this::deleteDevice), 8);
+    }
+
     @WithSpan("process-device")
     private Mono<Void> processDevice(DeviceAvro device) {
         log.info("Processing device {}", device.getDeviceId());
         return deviceService.saveDevice(device)
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                        .maxBackoff(Duration.ofSeconds(8))
+                        .filter(ex -> ex instanceof Exception)
+                        .onRetryExhaustedThrow((_, signal) -> signal.failure())
+                )
+                .onErrorResume(ex -> kafkaDeviceDltProducer.publishToDlt(device, ex));
+    }
+
+    @WithSpan("delete-device")
+    private Mono<Void> deleteDevice(DeviceAvro device) {
+        log.info("Delete device {}", device.getDeviceId());
+        return deviceService.deleteDevice(device.getDeviceId())
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
                         .maxBackoff(Duration.ofSeconds(8))
                         .filter(ex -> ex instanceof Exception)

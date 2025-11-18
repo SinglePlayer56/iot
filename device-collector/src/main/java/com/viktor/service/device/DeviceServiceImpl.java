@@ -30,4 +30,15 @@ public class DeviceServiceImpl implements DeviceService {
                 })
                 .subscribeOn(Schedulers.boundedElastic());
     }
+
+    @Override
+    @WithSpan("delete-device-service")
+    public Mono<Void> deleteDevice(String deviceId) {
+        log.info("Delete device {}", deviceId);
+        return Mono.<Void>fromCallable(() -> {
+                    deviceDao.deleteById(deviceId);
+                    return null;
+                })
+                .subscribeOn(Schedulers.boundedElastic());
+    }
 }

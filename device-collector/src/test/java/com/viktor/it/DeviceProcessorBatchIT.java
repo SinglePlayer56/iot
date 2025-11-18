@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class DeviceProcessorBatchIT extends AbstractIntegrationTest {
 
     @Autowired
@@ -50,5 +50,26 @@ public class DeviceProcessorBatchIT extends AbstractIntegrationTest {
 
         assertThat(shardingUtil.determineShard(dev2.getDeviceId()))
                 .isNotNull();
+    }
+
+    @Test
+    @DisplayName("Given existing devices When batch delete processed Then each removed from correct shard")
+    void shouldProcessBatchDeleteAndRemoveFromShard() {
+        DeviceAvro dev1 = DeviceUtilData.getDevice1();
+        DeviceAvro dev2 = DeviceUtilData.getDevice2();
+        List<DeviceAvro> batch = List.of(dev1, dev2);
+
+        deviceProcessor.processDevices(batch).blockLast(Duration.ofSeconds(10));
+
+        assertThat(deviceDao.findById(dev1.getDeviceId())).isPresent();
+        assertThat(deviceDao.findById(dev2.getDeviceId())).isPresent();
+
+        deviceProcessor.deleteDevices(batch).blockLast(Duration.ofSeconds(10));
+
+        assertThat(deviceDao.findById(dev1.getDeviceId())).isNotPresent();
+        assertThat(deviceDao.findById(dev2.getDeviceId())).isNotPresent();
+
+        assertThat(shardingUtil.determineShard(dev1.getDeviceId())).isNotNull();
+        assertThat(shardingUtil.determineShard(dev2.getDeviceId())).isNotNull();
     }
 }

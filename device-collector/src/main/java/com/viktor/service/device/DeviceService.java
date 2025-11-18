@@ -6,4 +6,6 @@ import reactor.core.publisher.Mono;
 public interface DeviceService {
 
     Mono<Void> saveDevice(DeviceAvro device);
+
+    Mono<Void> deleteDevice(String deviceId);
 }
