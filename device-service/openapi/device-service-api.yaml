@@ -26,6 +26,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeviceDto'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
 
     put:
       summary: "Update device"
@@ -47,6 +53,18 @@ paths:
       responses:
         '202':
           description: "Accepted"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
 
     delete:
       summary: "Delete device"
@@ -62,6 +80,18 @@ paths:
       responses:
         '202':
           description: "Accepted"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
 
   /api/v1/devices:
     post:
@@ -78,6 +108,18 @@ paths:
       responses:
         '202':
           description: "Accepted"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
 
 
 
@@ -101,3 +143,22 @@ components:
           type: number
         meta:
           type: string
+
+    ErrorResponseDto:
+      type: object
+      description: Тело ошибки
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: Код ошибки
+        timestamp:
+          type: integer
+          format: int64
+          description: Время
+        message:
+          type: string
+          description: Сообщение ошибки
+        traceId:
+          type: string
+          description: Trace Id

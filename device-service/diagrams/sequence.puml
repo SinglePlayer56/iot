@@ -55,7 +55,7 @@ alt Cache hit
    DS --> DS: throw DeviceAlreadyExistsException
    DS -> MS: increment("device.create.error")
    DS --> DC: DeviceAlreadyExistsException
-   DC --> User: HTTP 400 \nBad Request — устройство уже существует
+   DC --> User: HTTP 409 \nConflict — устройство уже существует
 else Cache miss
     RCS --> DS: false (ключ не найден)
     DS -> MS: increment("device.cache.miss")
@@ -69,7 +69,7 @@ else Cache miss
         DS --> DS: throw DeviceAlreadyExistsException
         DS -> MS: increment("device.create.error")
         DS --> DC: DeviceAlreadyExistsException
-        DC --> User: HTTP 400 \nBad Request — устройство уже существует
+        DC --> User: HTTP 409 \nConflict — устройство уже существует
     else device не найден
         S --> SSJ: false (из БД)
         SSJ --> DR: false
