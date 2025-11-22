@@ -5,6 +5,19 @@ spring:
   application:
     name: device-service
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000
+      ttl: 120
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          time-between-eviction-runs: 2000
+
   jpa:
     hibernate:
       ddl-auto: validate
