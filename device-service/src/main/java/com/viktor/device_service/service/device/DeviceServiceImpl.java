@@ -1,6 +1,7 @@
 package com.viktor.device_service.service.device;
 
 import com.viktor.device.dto.DeviceDto;
+import com.viktor.device_service.annotations.CountMetric;
 import com.viktor.device_service.exception.AlreadyExistsException;
 import com.viktor.device_service.exception.NotFoundException;
 import com.viktor.device_service.kafka.KafkaDeviceProducer;
@@ -24,6 +25,7 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceMapper deviceMapper;
 
     @Override
+    @CountMetric(success = "device.create.success", error = "device.create.error")
     public void createDevice(DeviceDto deviceDto) {
         var cachedDeviceDto = redisCacheService.get(deviceDto.getDeviceId());
         if (Objects.nonNull(cachedDeviceDto)) {
@@ -38,6 +40,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    @CountMetric(success = "device.update.success", error = "device.update.error")
     public void updateDevice(String deviceId, DeviceDto deviceDto) {
         var cachedDeviceDto = redisCacheService.get(deviceId);
         if (Objects.isNull(cachedDeviceDto)) {
@@ -50,6 +53,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    @CountMetric(success = "device.get.success", error = "device.get.error")
     public DeviceDto findById(String deviceId) {
         var deviceDto = redisCacheService.get(deviceId);
         if (Objects.isNull(deviceDto)) {
@@ -64,6 +68,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
+    @CountMetric(success = "device.delete.success", error = "device.delete.error")
     public void deleteById(String deviceId) {
         var deviceDto = redisCacheService.get(deviceId);
         if (Objects.isNull(deviceDto)) {

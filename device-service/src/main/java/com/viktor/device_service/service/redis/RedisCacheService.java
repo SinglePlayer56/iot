@@ -1,33 +1,12 @@
 package com.viktor.device_service.service.redis;
 
 import com.viktor.device.dto.DeviceDto;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+public interface RedisCacheService {
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class RedisCacheService {
+    DeviceDto get(String deviceId);
 
-    private final RedisTemplate<String, DeviceDto> redisTemplate;
+    void set(String deviceId, DeviceDto deviceDto);
 
-    @Value("${spring.data.redis.ttl}")
-    private Integer ttl;
-
-    public DeviceDto get(String deviceId) {
-        return redisTemplate.opsForValue().get(deviceId);
-    }
-
-    public void set(String deviceId, DeviceDto deviceDto) {
-        redisTemplate.opsForValue().set(deviceId, deviceDto, Duration.ofSeconds(ttl));
-    }
-
-    public void evict(String deviceId) {
-        redisTemplate.delete(deviceId);
-    }
+    void evict(String deviceId);
 }
