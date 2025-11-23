@@ -205,6 +205,8 @@ services:
     command:
       - start-dev
       - --import-realm
+    volumes:
+      - ${PROJECT_DIR:-.}/keycloak:/opt/keycloak/data/import
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsS http://localhost:9000/healthy/ready || exit 1" ]
       interval: 10s
