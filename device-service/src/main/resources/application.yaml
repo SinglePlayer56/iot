@@ -5,10 +5,26 @@ spring:
   application:
     name: device-service
 
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${KC_DS_CLIENT_ID:device-service}
+            client-secret: ${KC_DS_CLIENT_SECRET:<TOKEN>}
+            client-name: ${KC_DS_CLIENT_ID:device-service}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_REALM_URL:http://localhost:8080/realms/iot}
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis}
       timeout: 2000
       ttl: 120
       lettuce:
