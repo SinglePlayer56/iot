@@ -140,7 +140,8 @@ components:
         deviceType:
           type: string
         createdAt:
-          type: number
+          type: integer
+          format: int64
         meta:
           type: string
 
