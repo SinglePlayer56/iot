@@ -11,8 +11,8 @@ val versions = mapOf(
     "mapStructBinding" to "0.2.0",
     "springdocOpenapiStarterWebmvcUiVersion" to "2.5.0",
     "feignMicrometerVersion" to "13.6",
-    "javaxAnnotationApiVersion" to "1.3.2",
-    "javaxValidationApiVersion" to "2.0.0.Final",
+    "jakartaValidation" to "3.1.1",
+    "jacksonBind" to "0.2.6",
     "springCloudStarterOpenfeign" to "4.1.1"
 )
 
@@ -100,8 +100,8 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
 
-    implementation("javax.validation:validation-api:${versions["javaxValidationApiVersion"]}")
-    implementation("javax.annotation:javax.annotation-api:${versions["javaxAnnotationApiVersion"]}")
+    implementation("jakarta.validation:jakarta.validation-api:${versions["jakartaValidation"]}")
+    implementation("org.openapitools:jackson-databind-nullable:${versions["jacksonBind"]}")
 
     implementation("org.mapstruct:mapstruct:${versions["mapStruct"]}")
     compileOnly("org.projectlombok:lombok")
@@ -156,6 +156,7 @@ foundSpecifications.forEach { specFile ->
                 "openApiNullable" to "false",
                 "useFeignClientUrl" to "true",
                 "useTags" to "true",
+                "useJakartaEe" to "true",
                 "apiPackage" to "${basePackage}.api",
                 "modelPackage" to "${basePackage}.dto",
                 "configPackage" to "${basePackage}.config"
