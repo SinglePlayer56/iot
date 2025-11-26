@@ -13,7 +13,8 @@ val versions = mapOf(
     "feignMicrometerVersion" to "13.6",
     "jakartaValidation" to "3.1.1",
     "jacksonBind" to "0.2.6",
-    "springCloudStarterOpenfeign" to "4.1.1"
+    "springCloudStarterOpenfeign" to "4.1.1",
+    "testContainerKeycloak" to "4.0.0"
 )
 
 plugins {
@@ -118,6 +119,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
     testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")
+    testImplementation("com.github.dasniko:testcontainers-keycloak:${versions["testContainerKeycloak"]}")
 }
 
 tasks.withType<Test> {
