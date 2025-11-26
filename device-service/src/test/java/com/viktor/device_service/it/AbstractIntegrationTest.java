@@ -152,8 +152,10 @@ public abstract class AbstractIntegrationTest {
         registry.add("sharding.shards[1].replicas[0].username", () -> "postgres");
         registry.add("sharding.shards[1].replicas[0].password", () -> "postgres");
 
-        String keycloakUrl = "http://" + HOST + ":" + keycloak.getMappedPort(8080) + "/realms/iot";
-        registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> keycloakUrl);
+        String issUrl = "http://" + HOST + ":" + keycloak.getMappedPort(8080) + "/realms/iot";
+        String jwkUrl = "http://" + HOST + ":" + keycloak.getMappedPort(8080) + "/realms/iot/protocol/openid-connect/certs";
+        registry.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> issUrl);
+        registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri", () -> jwkUrl);
         registry.add("spring.client.registration.keycloak.provider", () -> "keycloak");
         registry.add("spring.client.registration.keycloak.client-id", () -> "device-service");
         registry.add("spring.client.registration.keycloak.client-secret", () -> "test-secret");
