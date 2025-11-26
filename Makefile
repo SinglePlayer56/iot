@@ -33,7 +33,7 @@ postgres-exporter-devices-shard-1-master postgres-exporter-devices-shard-0-repli
 
 SECURITY ?= keycloak postgres_keycloak
 
-DEVICE_SERVICE ?= redis $(DEVICES_DB_CLUSTER) $(SECURITY)
+DEVICE_SERVICE ?= device-service redis $(DEVICES_DB_CLUSTER) $(KAFKA_SERVICES)
 
 DEVICE_SERVICE_MONITORING ?= redis-exporter postgres-exporter-keycloak $(DEVICE_COLLECTOR_MONITORING)
 
@@ -63,17 +63,36 @@ docker-proxy-stop:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down docker-proxy
 
 keycloak-disable-ssl:
-	@echo "Авторизация в Keycloak CLI"
+	@echo "Авторизация в Keycloak CLI (master realm)"
 	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh config credentials \
+		--config /tmp/kc-master.json \
 		--server http://127.0.0.1:8080 \
 		--realm master \
-		--user $(KC_BOOTSTRAP_ADMIN_USERNAME) \
-		--password $(KC_BOOTSTRAP_ADMIN_PASSWORD)
+		--user "$(KC_BOOTSTRAP_ADMIN_USERNAME)" \
+		--password "$(KC_BOOTSTRAP_ADMIN_PASSWORD)"
 
 	@echo "Отключение sslRequired=NONE в master realm"
-	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
-
+	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh update \
+		--config /tmp/kc-master.json \
+		realms/master \
+		-s sslRequired=NONE
 	@echo "SSL requirement отключён в master realm"
+	@echo ""
+
+	@echo "Авторизация в Keycloak CLI (iot realm)"
+	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh config credentials \
+		--config /tmp/kc-iot.json \
+		--server http://127.0.0.1:8080 \
+		--realm master \
+		--user "$(KC_BOOTSTRAP_ADMIN_USERNAME)" \
+		--password "$(KC_BOOTSTRAP_ADMIN_PASSWORD)"
+
+	@echo "Отключение sslRequired=NONE в iot realm"
+	docker exec -it $(KEYCLOAK_CONTAINER) /opt/keycloak/bin/kcadm.sh update \
+		--config /tmp/kc-iot.json \
+		realms/iot \
+		-s sslRequired=NONE
+	@echo "SSL requirement отключён в iot realm"
 
 nexus-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d nexus
@@ -89,6 +108,15 @@ nexus-stop-remove:
 
 build-artifacts:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build $(SHARED_ARTIFACTS) --no-cache
+
+security-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(SECURITY)
+
+security-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(SECURITY)
+
+security-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(SECURITY)
 
 start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d

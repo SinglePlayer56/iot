@@ -199,7 +199,6 @@ services:
       KC_DB_URL_DATABASE: ${POSTGRES_KEYCLOAK_DB}
       KC_HOSTNAME: ${KEYCLOAK_HOST:-localhost}
       KC_HOSTNAME_ADMIN_URL: http://${KEYCLOAK_HOST:-localhost}:8080
-
       KC_METRICS_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     command:
@@ -707,6 +706,71 @@ services:
       postgres-devices-shard-0-replica:
         condition: service_healthy
       postgres-devices-shard-1-master:
+        condition: service_healthy
+      postgres-devices-shard-1-replica:
+        condition: service_healthy
+    networks:
+      - iot_network
+
+  device-service:
+    image: device-service:latest
+    container_name: device-service
+    build:
+      context: ../device-service
+      dockerfile: ../device-service/Dockerfile
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+        TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        DOCKER_HOST: host.docker.internal:2375
+    ports:
+      - "8203:8203"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
+      KAFKA_ADDRESS: kafka:9092
+      SCHEMA_REGISTRY_ADDRESS: schema-registry:8081
+      POSTGRES_DEVICES_DB_NAME: ${POSTGRES_DEVICES_DB_NAME}
+      SHARD_0_MASTER_URL: postgres-devices-shard-0-master:5432
+      SHARD_0_REPLICA_URL: postgres-devices-shard-0-replica:5432
+      SHARD_1_MASTER_URL: postgres-devices-shard-1-master:5432
+      SHARD_1_REPLICA_URL: postgres-devices-shard-1-replica:5432
+      POSTGRES_DEVICES_USER_SHARD_0_MASTER: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER}
+      POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER}
+      POSTGRES_DEVICES_USER_SHARD_0_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA}
+      POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA}
+      POSTGRES_DEVICES_USER_SHARD_1_MASTER: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER}
+      POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER}
+      POSTGRES_DEVICES_USER_SHARD_1_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}
+      POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}
+      KC_DS_CLIENT_ID: ${KC_DS_CLIENT_ID}
+      KC_DS_CLIENT_SECRET: ${KC_DS_CLIENT_SECRET}
+      KEYCLOAK_ISS_URL: ${KEYCLOAK_ISS_URL}
+      KEYCLOAK_JWK_URL: ${KEYCLOAK_JWK_URL}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      postgres-devices-shard-0-master:
+        condition: service_healthy
+      postgres-devices-shard-0-replica:
+        condition: service_healthy
+      postgres-devices-shard-1-master:
+        condition: service_healthy
+      postgres-devices-shard-1-replica:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - iot_network

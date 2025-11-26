@@ -18,7 +18,8 @@ spring:
             scope: openid, profile, email
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_REALM_URL:http://localhost:8080/realms/iot}
+          issuer-uri: ${KEYCLOAK_ISS_URL:http://localhost:8080/realms/iot}
+          jwk-set-uri: ${KEYCLOAK_JWK_URL:http://localhost:8080/realms/iot/protocol/openid-connect/certs}
 
   data:
     redis:

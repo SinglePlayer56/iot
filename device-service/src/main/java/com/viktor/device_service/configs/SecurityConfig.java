@@ -15,6 +15,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/devices").hasAnyAuthority("ROLE_device-service.admin")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/devices/{deviceId}").hasAnyAuthority("ROLE_device-service.admin")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/devices/{deviceId}").hasAnyAuthority("ROLE_device-service.admin")
