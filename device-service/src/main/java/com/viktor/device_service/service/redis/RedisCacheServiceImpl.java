@@ -17,7 +17,7 @@ public class RedisCacheServiceImpl implements RedisCacheService {
 
     private final RedisTemplate<String, DeviceDto> redisTemplate;
 
-    @Value("${spring.data.redis.ttl}")
+    @Value("${spring.data.redis.ttl:120}")
     private Integer ttl;
 
     @CacheMetric(hit = "device.cache.hit", miss = "device.cache.miss")
