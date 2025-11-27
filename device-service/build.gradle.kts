@@ -275,18 +275,9 @@ val generatedJars = foundSpecifications.map { specFile ->
 ──────────────────────────────────────────────────────
 */
 
-file("../.env").takeIf { it.exists() }?.readLines()
-    ?.map { it.trim() }
-    ?.filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
-    ?.forEach { line ->
-        val (k, v) = line.split("=", limit = 2)
-        System.setProperty(k.trim(), v.trim())
-        logger.lifecycle("${k.trim()}=${v.trim()}")
-    }
-
-val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
-val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
-val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+val nexusUrl = System.getenv("NEXUS_URL") ?: "http://localhost:8085/repository/maven-releases/"
+val nexusUser = System.getenv("NEXUS_USERNAME") ?: "admin"
+val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: "admin"
 
 if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
     throw GradleException(

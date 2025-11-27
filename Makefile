@@ -35,7 +35,9 @@ SECURITY ?= keycloak postgres_keycloak
 
 DEVICE_SERVICE ?= device-service redis $(DEVICES_DB_CLUSTER) $(KAFKA_SERVICES)
 
-DEVICE_SERVICE_MONITORING ?= redis-exporter postgres-exporter-keycloak $(DEVICE_COLLECTOR_MONITORING)
+DEVICE_SERVICE_MONITORING ?= $(DEVICE_SERVICE) $(MONITORING_SERVICES) redis-exporter kafka-exporter \
+							postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
+	  						postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 

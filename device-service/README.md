@@ -87,7 +87,7 @@
 
    4  Сгенерируй новый client secret
 
-   5  Добавь его в .env в переменную KC_DS_CLIENT_SECRET
+   5  Добавь его в .env в переменную KC_DS_CLIENT_SECRET и в конфиг прометеуса для device-service
 
    6  Для тестирования запросов создай пользователя в Users и выдай ему роль:
         - device-service.admin или

@@ -22,6 +22,6 @@ RUN socat -v UNIX-LISTEN:/var/run/docker.sock,fork TCP:$DOCKER_HOST & gradle cle
 FROM eclipse-temurin:24-jdk-alpine
 
 WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/libs/device-service-1.0.0.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
