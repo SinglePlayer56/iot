@@ -32,7 +32,7 @@
 > 2. Добавь схему для `devices-value`
 > 3. Добавь схему для `devices-delete-value`
 > 4. Добавь схему для `devices.DLT-value`
-> 5. После этого можно публиковать сообщения в топик `devices`.
+> 5. После этого можно публиковать сообщения в топик `devices`, `devices-delete`, `devices.DLT`.
 
 ---
 
@@ -67,7 +67,7 @@
 
 ---
 
-## Пример отправки события в топики `devices` и `devices-delete`
+## Пример отправки сообщения в топики `devices` и `devices-delete`
 
 ```json
 {
