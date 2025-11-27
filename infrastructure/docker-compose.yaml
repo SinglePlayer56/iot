@@ -795,6 +795,25 @@ services:
       timeout: 10s
       retries: 30
 
+  device-service-publisher:
+    build:
+      context: ../device-service
+      dockerfile: ../device-service/DockerfilePublisher
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+        TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        DOCKER_HOST: host.docker.internal:2375
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      - iot_network
+
+
   avro-shared-library-publisher:
     build:
       context: ../avro-shared-library

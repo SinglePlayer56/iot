@@ -221,3 +221,136 @@ tasks.register("generateAllOpenApi") {
 tasks.named("compileJava") {
     dependsOn("generateAllOpenApi")
 }
+
+/*
+──────────────────────────────────────────────────────
+============== Building jars ==============
+──────────────────────────────────────────────────────
+*/
+
+tasks.named("build") {
+    dependsOn(generatedJars)
+}
+
+val generatedJars = foundSpecifications.map { specFile ->
+    val name = specFile.nameWithoutExtension
+    val generateTaskName = buildGenerateApiTaskName(name)
+    val jarTaskName = buildJarTaskName(name)
+    val outDirProvider = getAbsolutePath(name)
+    val generateSrcDir = outDirProvider.map { File(it).resolve("src/main/java") }
+
+    val sourcesSetName = name
+
+    val sourceSet = sourceSets.create(sourcesSetName) {
+        java.srcDir(generateSrcDir)
+        compileClasspath += sourceSets["main"].compileClasspath
+    }
+
+    val compileTaskName = "compile${sourcesSetName.replaceFirstChar(Char::uppercase)}Java"
+    tasks.register<JavaCompile>(compileTaskName) {
+        source = sourceSet.java
+        classpath = sourceSet.compileClasspath
+        destinationDirectory.set(layout.buildDirectory.dir("classes/${sourcesSetName}"))
+        dependsOn(generateTaskName)
+    }
+
+    tasks.register<Jar>(jarTaskName) {
+        group = "build"
+        archiveBaseName.set(name)
+        destinationDirectory.set(layout.buildDirectory.dir("libs"))
+
+        val classOutput = layout.buildDirectory.dir("classes/${sourcesSetName}")
+        from(classOutput)
+        dependsOn(compileTaskName)
+
+        doFirst {
+            println("Building JAR for $name from compiled classes in ${classOutput.get().asFile}")
+        }
+    }
+}
+
+/*
+──────────────────────────────────────────────────────
+============== Resolve NEXUS credentials ==============
+──────────────────────────────────────────────────────
+*/
+
+file("../.env").takeIf { it.exists() }?.readLines()
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+    ?.forEach { line ->
+        val (k, v) = line.split("=", limit = 2)
+        System.setProperty(k.trim(), v.trim())
+        logger.lifecycle("${k.trim()}=${v.trim()}")
+    }
+
+val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
+val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
+val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+
+if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
+    throw GradleException(
+        "NEXUS details are not set. Create a .env file with correct properties: " +
+                "NEXUS_URL, NEXUS_USERNAME, NEXUS_PASSWORD"
+    )
+}
+
+/*
+──────────────────────────────────────────────────────
+============== Nexus Publishing ==============
+──────────────────────────────────────────────────────
+*/
+
+publishing {
+    publications {
+        foundSpecifications.forEach { specFile ->
+            val name = specFile.nameWithoutExtension
+            val jarBaseName = name
+            var jarFile = file("build/libs")
+                .listFiles()
+                ?.firstOrNull { it.name.contains(name) && (it.extension == "jar" || it.extension == "zip") }
+
+            if (jarFile != null) {
+                logger.lifecycle("publishing: ${jarFile.name}")
+
+                create<MavenPublication>("publish${name.replaceFirstChar(Char::uppercase)}Jar") {
+                    artifact(jarFile)
+                    groupId = "com.viktor"
+                    artifactId = jarBaseName
+                    version = "1.0.0"
+
+                    pom {
+                        this.name.set("Generated API $jarBaseName")
+                        this.description.set("OpenAPI generated code for $jarBaseName")
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "nexus"
+            url = uri(nexusUrl)
+            isAllowInsecureProtocol = true
+            credentials {
+                username = nexusUser
+                password = nexusPassword
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    val jarTask = tasks.named("jar-DeviceServiceApi")
+
+    val publishTask = tasks.named(
+        "publishPublishDevice-service-apiJarPublicationToNexusRepository"
+    )
+
+    publishTask.configure {
+        dependsOn(jarTask)
+        mustRunAfter(jarTask)
+        inputs.files(jarTask.get().outputs.files)
+    }
+}
