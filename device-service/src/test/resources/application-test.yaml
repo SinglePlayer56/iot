@@ -9,7 +9,6 @@ spring:
           keycloak:
             provider: keycloak
             client-id: ${KC_DS_CLIENT_ID:device-service}
-            client-secret: ${KC_DS_CLIENT_SECRET:<TOKEN>}
             client-name: ${KC_DS_CLIENT_ID:device-service}
             authorization-grant-type: authorization_code
             scope: openid, profile, email
@@ -63,6 +62,9 @@ spring:
         auto.register.schemas: false
         acks: all
         enable.idempotence: true
+
+monitoring:
+  token: ${MONITORING_TOKEN:prometheus}
 
 management:
   otlp:
