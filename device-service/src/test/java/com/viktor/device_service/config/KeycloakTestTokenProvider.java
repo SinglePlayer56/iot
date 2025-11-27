@@ -21,7 +21,7 @@ public class KeycloakTestTokenProvider {
     }
 
     public String getUserToken(String authUrl) {
-        return getToken(authUrl, "user", "user"); // если есть пользователь user
+        return getToken(authUrl, "user", "user");
     }
 
     private String getToken(String authUrl, String username, String password) {

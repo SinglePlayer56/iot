@@ -92,4 +92,14 @@ scrape_configs:
     scrape_interval: 10s
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: [ 'host.docker.internal:8201' ]
+      - targets: [ 'device-collector:8201' ]
+
+  - job_name: device-service
+    scrape_interval: 10s
+    metrics_path: '/actuator/prometheus'
+    oauth2:
+      client_id: device-service
+      client_secret: <TOKEN>
+      token_url: http://keycloak:8080/realms/iot/protocol/openid-connect/token
+    static_configs:
+      - targets: [ 'device-service:8203' ]
