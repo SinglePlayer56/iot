@@ -39,6 +39,8 @@ DEVICE_SERVICE_MONITORING ?= redis-exporter postgres-exporter-keycloak $(DEVICE_
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
+SERVICES_ARTIFACTS ?= device-service-publisher
+
 ifeq ($(OS),Windows_NT)
 WAIT_CMD = powershell -Command "while ($$true) { \
 		try { \
@@ -106,8 +108,19 @@ nexus-stop:
 nexus-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v nexus
 
-build-artifacts:
+build-shared-artifacts:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build $(SHARED_ARTIFACTS) --no-cache
+
+build-all-artifacts:
+	@$(MAKE) build-shared-artifacts
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build $(SERVICES_ARTIFACTS) --no-cache
+	@$(MAKE) docker-proxy-stop
+
+build-device-service-artifact:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) build device-service-publisher --no-cache
+	@$(MAKE) docker-proxy-stop
 
 security-start:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(SECURITY)

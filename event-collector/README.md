@@ -76,7 +76,7 @@
 
 3. Зависимости:
    - Запущен контейнер nexus `make nexus-start`
-   - В Nexus опубликованы артефакты `make build-artifacts`
+   - В Nexus опубликованы артефакты `make build-shared-artifacts`
 
 3.  Используй команды `make` для управления сервисами:
 
