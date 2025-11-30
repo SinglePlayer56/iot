@@ -1,27 +1,81 @@
 @startuml
 actor KafkaBroker
 participant "Kafka Event Consumer" as KEC
+participant "Kafka Error Handler" as KEH
 participant "Event Collector Service" as ECS
 participant "Event Collector Repository" as ECR
 participant "Device Publication Service" as DPS
 participant "Device Publication Repository" as DPR
+participant "Casandra" as DB
 participant "Deduplicate Cache" as DDC
 participant "Kafka Device Producer" as KDP
+participant "Kafka DLT Producer" as KDLT
 
 KafkaBroker -> KEC : получение события в Avro (DeviceEvent)
-KEC -> ECS : Обработка десериализованного события
-ECS -> ECR : Сохранение события в БД
-ECS -> DPS : Передаю device события
-DPS -> DDC : Проверяем публикацию device
+KEC -> ECS : Получение батча сообщений и передача на обработку
 
-alt Уже публиковали
-    DDC --> DPS : Публикация была
-    DPS -> DPS: Пропускаем сохранение информации о device и отправку
-else Не публиковали
-    DDC --> DPS : Публикации не было
-    DPS -> KDP : Отдаём на публикацию device
-    KDP -> KafkaBroker : Публикуем device в devices
-    DPS -> DPR : Сохраняем информацию об опубликованном device в БД
-    DPS -> DDC : Добавляем device в кеш
+alt Невалидное сообщение (ошибка десериализации)
+    KEC -> KEH : Передача ошибки
+    KEH -> KafkaBroker : ACK сообщения (чтобы не блокировать consumer)
+    return
+else Валидное сообщение
+    KEC -> ECS : Передача сообщения на обработку
+end
+
+loop до 3 попыток
+    ECS -> ECR : Сохранение события в БД
+    ECR -> DB: INSERT
+
+    alt Успешно
+        DB --> ECR: OK
+        ECR --> ECS: OK
+    else Не успешно
+        DB --> ECR: Error
+        ECR --> ECS: Error
+        ECS -> ECS : retry (backoff)
+    end
+
+== Обработка устройства после сохранения события ==
+
+    ECS -> DPS : Передаю device события
+    DPS -> DDC : Проверяем публикацию device
+
+    alt Уже публиковали
+        DDC --> DPS : Публикация была
+        DPS -> DPS: Пропускаем сохранение информации о device и отправку
+        DPS --> ECS: OK
+        ECS --> KEC: OK
+        KEC --> KafkaBroker: ACK
+    else Не публиковали
+        DDC --> DPS : Публикации не было
+        DPS -> DPR : Сохраняем информацию о публикуемом device в БД
+        DPR -> DB: INSERT
+
+        alt Успешно
+            DB --> DPR: OK
+            DPR --> DPS: OK
+            DPS -> KDP : Отдаём на публикацию device
+            KDP -> KafkaBroker : Публикуем device в devices
+            KafkaBroker --> KDP : ACK devices
+            DPS -> DDC : Добавляем device в кеш
+            DDC --> DPS: OK
+            DPS --> ECS: OK
+            ECS --> KEC: OK
+            KEC --> KafkaBroker: ACK
+        else Ошибка
+            DB --> DPR: Error
+            DPR --> DPS: Error
+            DPS --> ECS: Error
+            ECS -> ECS : retry (backoff)
+        end
+    end
+end
+
+alt Все попытки неудачны
+    ECS -> KDLT : Передача ошибки на публикацию
+    KDLT -> KafkaBroker : Отправка в dlt-topic топик
+    KafkaBroker --> KDLT : ACK dlt-topic
+    ECS --> KEC : Завершение с обработкой ошибки
+    KEC -> KafkaBroker : ACK топика events
 end
 @enduml

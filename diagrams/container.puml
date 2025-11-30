@@ -17,6 +17,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     ContainerDb(postgresql_commands, "PostgreSQL (Commands)", "Реляционная БД", "Отдельная база для команд. Используется Go-сервисом.")
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
+    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка устройств")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
@@ -27,25 +28,30 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     }
 
     Boundary(kafka_stack, "Kafka Stack") {
-        ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt / device-id топики")
+        ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt-topic / devices / devices-delete топики")
         Container(kafka_ui, "Kafka UI", "UI", "Визуализация работы с Kafka")
         Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
     }
 
     Rel(schema_registry, kafka, "KafkaStore (хранилище схем)")
     Rel(event_collector_service, kafka, "Читает из топика events", "Avro")
-    Rel(event_collector_service, kafka, "Публикует уникальные device_id в топик device-id-topic", "Avro")
+    Rel(event_collector_service, kafka, "Публикует уникальные device в топик devices. Публикует информацию об ошибках в dlt-topic.", "Avro")
     Rel(event_collector_service, cassandra, "Сохраняет события вычитанные из топика events")
     Rel(event_collector_service, schema_registry, "Валидация Avro сообщений", "REST")
     Rel(kafka_ui, kafka, "Подключается для чтения метаданных и просмотра топиков")
     Rel(kafka_ui, schema_registry, "Читает схемы сообщений")
     Rel_Back(nexus, event_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(nexus, failed_events_processor, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
-    Rel(device_collector_service, kafka, "Читает из топика device-id-topic", "Avro")
+    Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
+    Rel(device_collector_service, kafka, "Публикует информацию об ошибках в dlt-topic", "Avro")
     Rel(device_collector_service, shard_device_collector_1_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
     Rel(device_collector_service, shard_device_collector_2_master, "Сохраняет и читает данные", "ShardingSphere JDBC")
+    Rel(failed_events_processor, kafka, "Читает из топика dlt-topic", "Avro")
+    Rel(failed_events_processor, minio, "Запись и чтение JSON объектов", "JSON")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -76,6 +82,7 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, minio, "Собирает метрики")
     Rel(prometheus, event_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, failed_events_processor, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, cassandra, "Читает JMX")
     Rel(prometheus, schema_registry, "Читает JMX")
 

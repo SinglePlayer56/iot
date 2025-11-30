@@ -35,8 +35,8 @@ public class DeviceIdPublicationServiceImpl implements DeviceIdPublicationServic
                 System.currentTimeMillis()
         );
 
-        return kafkaDeviceProducer.send(device)
-                .then(devicePublicationRepository.save(devicePublication))
+        return devicePublicationRepository.save(devicePublication)
+                .then(kafkaDeviceProducer.send(device))
                 .doOnSuccess(_ -> deduplicateCache.add(device))
                 .then();
     }

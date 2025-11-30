@@ -1,0 +1,27 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(failed_events_processor, "FailedEventsProcessor") {
+    Component(dlt_consumer, "DLTConsumer", "Spring Kafka", "Чтение сообщений из топика dlt-topic")
+    Component(failed_event_handler, "FailedEventHandler", "Бизнес-логика", "Бизнес логика обработки вычитанных сообщений")
+    Component(error_serializer, "ErrorSerializer", "JSON Converter", "Конвертация полученного сообщения в JSON представление")
+    Component(file_naming_service, "FileNamingService", "Utility", "Генерация уникальных имён файлов")
+    Component(storage_service, "StorageService", "MinIO Client", "Запись и чтение объектов (JSON) в MinIO")
+    Component(kafka_error_handler, "Kafka Error Handler", "Error Handler", "Обработка сообщения неверной схемы, сдвигает offset")
+
+    Rel(dlt_consumer, failed_event_handler, "Передача сообщения для обработки")
+    Rel(dlt_consumer, kafka_error_handler, "Проброс сообщения с невалидной схемой")
+    Rel(failed_event_handler, file_naming_service, "Получает уникальное имя файла")
+    Rel(failed_event_handler, error_serializer, "Получает JSON представление сообщения")
+    Rel(failed_event_handler, storage_service, "Передаёт сформированный JSON и имя файла")
+}
+
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt-topic топик")
+Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+ContainerDb(minio, "MinIO", "Объектное хранилище", "Сохранение JSON ошибок")
+
+Rel(dlt_consumer, schema_registry, "Запрашивает схему для десериализация")
+Rel(dlt_consumer, kafka, "Вычитывание сообщений из топика dlt-topic")
+Rel(storage_service, minio, "Запись и чтение JSON объектов")
+
+@enduml

@@ -26,11 +26,14 @@ public class EventCollectorServiceImpl implements EventCollectorService {
     public Mono<Void> processEvents(List<DeviceEvent> events) {
         log.info("Processing events: {}", events.size());
         return Flux.fromIterable(events)
-                .flatMap(this::saveEvent)
-                .thenMany(Flux.fromIterable(events)
-                        .map(DeviceEvent::getDevice)
-                        .distinct()
-                        .flatMap(deviceIdPublicationService::processDevice))
+                .flatMap(this::processEvent)
+                .then();
+    }
+
+    @WithSpan("process-event")
+    private Mono<Void> processEvent(DeviceEvent deviceEvent) {
+        return saveEvent(deviceEvent)
+                .then(deviceIdPublicationService.processDevice(deviceEvent.getDevice()))
                 .then();
     }
 
