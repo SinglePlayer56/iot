@@ -17,8 +17,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     ContainerDb(postgresql_commands, "PostgreSQL (Commands)", "Реляционная БД", "Отдельная база для команд. Используется Go-сервисом.")
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
-    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
     Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
+    Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
@@ -31,7 +31,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     }
 
     Boundary(kafka_stack, "Kafka Stack") {
-        ContainerQueue(kafka, "Kafka Cluster", "Kafka", "event / dlt-topic / devices / devices-delete топики")
+        ContainerQueue(kafka, "Kafka Cluster", "Kafka", "events / dlt-topic / devices / devices-delete топики")
         Container(kafka_ui, "Kafka UI", "UI", "Визуализация работы с Kafka")
         Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
     }
@@ -53,8 +53,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
 
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
-    Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
 
     Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
     Rel(device_collector_service, kafka, "Публикует информацию об ошибках в dlt-topic", "Avro")
