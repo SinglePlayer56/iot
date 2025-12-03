@@ -14,7 +14,8 @@ val versions = mapOf(
     "jakartaValidation" to "3.1.1",
     "jacksonBind" to "0.2.6",
     "springCloudStarterOpenfeign" to "4.1.1",
-    "testContainerKeycloak" to "4.0.0"
+    "testContainerKeycloak" to "4.0.0",
+    "swaggerAnnotations" to "2.2.21"
 )
 
 plugins {
@@ -82,13 +83,13 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.apache.shardingsphere:shardingsphere-jdbc:${versions["shardingJdbc"]}")
 
-    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:${versions["springCloudStarterOpenfeign"]}")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${versions["springdocOpenapiStarterWebmvcUiVersion"]}")
-    implementation("io.swagger.core.v3:swagger-annotations:2.2.21")
-
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.confluent:kafka-avro-serializer:${versions["avroSerializer"]}")
     implementation("com.viktor:avro-shared-library:${versions["avroSharedLibrary"]}")
+
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:${versions["springCloudStarterOpenfeign"]}")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${versions["springdocOpenapiStarterWebmvcUiVersion"]}")
+    implementation("io.swagger.core.v3:swagger-annotations:${versions["swaggerAnnotations"]}")
 
     implementation("io.micrometer:micrometer-registry-prometheus")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
@@ -99,7 +100,6 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
 
     implementation("jakarta.validation:jakarta.validation-api:${versions["jakartaValidation"]}")
     implementation("org.openapitools:jackson-databind-nullable:${versions["jacksonBind"]}")
