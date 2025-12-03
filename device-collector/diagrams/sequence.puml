@@ -10,7 +10,7 @@ participant "Shard N" as S
 participant "Kafka Device DLT Producer" as DLT
 participant "Metrics Service" as MS
 
-KafkaBroker -> DKC: Читаем сообщение из топиков devices/devices-delete
+KafkaBroker -> KDC: Читаем сообщение из топиков devices/devices-delete
 KDC -> DP : Получение батча сообщений и передача на обработку
 
 alt Невалидное сообщение (ошибка десериализации)
