@@ -1,11 +1,12 @@
 package com.viktor.service;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.entity.DeviceEntity;
 import com.viktor.mapper.device.DeviceMapper;
 import com.viktor.service.device.DeviceServiceImpl;
 import com.viktor.utils.DeviceUtilData;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.BDDMockito;
@@ -31,8 +32,9 @@ public class DeviceServiceImplTest {
     DeviceServiceImpl deviceService;
 
     @Test
-    void givenValidDevice_whenSaveDevice_thenDaoSaveIsCalled() {
-        Device device = DeviceUtilData.getDevice1();
+    @DisplayName("Given valid device When saveDevice called Then DAO save is invoked")
+    void givenValidDevice_whenSaveDeviceCalled_thenDaoSaveIsInvoked() {
+        DeviceAvro device = DeviceUtilData.getDevice1();
         DeviceEntity entity = new DeviceEntity();
 
         given(deviceMapper.toDeviceEntity(device)).willReturn(entity);
@@ -43,5 +45,19 @@ public class DeviceServiceImplTest {
 
         BDDMockito.then(deviceMapper).should(times(1)).toDeviceEntity(device);
         BDDMockito.then(deviceDao).should(times(1)).save(entity);
+    }
+
+    @Test
+    @DisplayName("Given valid device ID When deleteDevice called Then DAO deleteById is invoked")
+    void givenValidDeviceId_whenDeleteDeviceCalled_thenDaoDeleteIsInvoked() {
+        DeviceAvro device = DeviceUtilData.getDevice1();
+
+        BDDMockito.given(deviceDao.deleteById(device.getDeviceId()))
+                .willReturn(1);
+
+        StepVerifier.create(deviceService.deleteDevice(device.getDeviceId()))
+                .verifyComplete();
+
+        BDDMockito.then(deviceDao).should(times(1)).deleteById(device.getDeviceId());
     }
 }

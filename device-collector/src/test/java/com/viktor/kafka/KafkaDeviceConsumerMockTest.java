@@ -1,9 +1,10 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.utils.DeviceUtilData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.BDDMockito;
@@ -31,20 +32,40 @@ public class KafkaDeviceConsumerMockTest {
     KafkaDeviceConsumer consumer;
 
     @Test
+    @DisplayName("consume devices — should invoke processDevices and acknowledge")
     void givenAvroRecord_whenConsumed_thenProcessorInvoked_andAcked() {
         var device = DeviceUtilData.getDevice1();
 
-        ConsumerRecord<String, Device> record =
+        ConsumerRecord<String, DeviceAvro> record =
                 new ConsumerRecord<>("devices", 0, 0L, "key", device);
 
-        List<ConsumerRecord<String, Device>> list = List.of(record);
+        List<ConsumerRecord<String, DeviceAvro>> list = List.of(record);
 
         BDDMockito.given(processor.processDevices(anyList()))
                 .willReturn(Flux.empty());
 
-        consumer.listen(list, ack);
+        consumer.listenDevices(list, ack);
 
         BDDMockito.then(processor).should(times(1)).processDevices(List.of(device));
+        BDDMockito.then(ack).should(times(1)).acknowledge();
+    }
+
+    @Test
+    @DisplayName("consume delete event — should invoke deleteDevices and acknowledge")
+    void givenAvroRecordDeleted_whenConsumed_thenDeleteProcessorInvoked_andAcked() {
+        var device = DeviceUtilData.getDevice1();
+
+        ConsumerRecord<String, DeviceAvro> record =
+                new ConsumerRecord<>("devices-delete", 0, 0L, "key", device);
+
+        List<ConsumerRecord<String, DeviceAvro>> list = List.of(record);
+
+        BDDMockito.given(processor.deleteDevices(anyList()))
+                .willReturn(Flux.empty());
+
+        consumer.listenDevicesDelete(list, ack);
+
+        BDDMockito.then(processor).should(times(1)).deleteDevices(List.of(device));
         BDDMockito.then(ack).should(times(1)).acknowledge();
     }
 }

@@ -1,0 +1,36 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(device_service_components, "Device Service") {
+    Component(device_controller_v1, "DeviceControllerV1", "REST", "REST контроллер")
+    Component(device_service, "DeviceService", "Бизнес логика работы с устройствами")
+    Component(device_repository, "DeviceRepository", "JPA", "CRUD операции с устройствами")
+    Component(kafka_device_producer, "KafkaDeviceProducer", "Spring Kafka", "Публикация сообщений в топики devices/devices-delete")
+    Component(metrics_service, "MetricsService", "Micrometer", "Добавление кастомных метрик")
+    Component(configs, "Configs", "Конфигурации")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(exceptions, "Exceptions", "Кастомные ексепшены")
+    Component(security_config, "SecurityConfig", "Spring Security", "Валидация JWT, настройка доступа")
+    Component(redis_cache_service, "RedisCacheService", "Spring Data Redis", "Работа с кэшом редис")
+
+    Rel(device_controller_v1, security_config, "Авторизация запросов")
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
+    Rel(device_controller_v1, device_service, "Передача запроса на обработку")
+    Rel(device_service, device_repository, "CRUD операции с устройств")
+    Rel(device_service, kafka_device_producer, "Передача сообщений для публикации в топики devices/devices-delete")
+    Rel(device_service, redis_cache_service, "Кеширование данных")
+}
+
+ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSphere JDBC)", "Шардированное хранилище данных об устройствах")
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "devices/devices-delete топик")
+Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
+Container(redis, "Redis", "In-memory Cache", "Кэширование запросов")
+Container(keycloak, "Keycloak", "OAuth 2.0", "Аутентификация")
+
+Rel(redis_cache_service, redis, "Запись и чтение данных")
+Rel(kafka_device_producer, kafka, "Публикация сообщений в топики devices/devices-delete топик")
+Rel(device_repository, device_collector_data, "CRUD операции", "ShardingSphere JDBC")
+Rel(kafka_device_producer, schema_registry, "Запрашивает схему для сериализации")
+Rel(security_config, keycloak, "Получение публичного ключа")
+
+@enduml

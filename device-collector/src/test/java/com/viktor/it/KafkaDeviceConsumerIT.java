@@ -1,6 +1,6 @@
 package com.viktor.it;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.utils.DeviceUtilData;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class KafkaDeviceConsumerIT extends AbstractIntegrationTest {
 
     @MockitoSpyBean
@@ -28,13 +28,24 @@ public class KafkaDeviceConsumerIT extends AbstractIntegrationTest {
     private KafkaTemplate<Object, Object> kafkaTemplate;
 
     @Test
-    @DisplayName("Consume device message from Kafka")
-    void shouldConsumeDeviceMessageAndProcessIt() {
+    @DisplayName("Consume message from 'devices' topic — should process save/update")
+    void givenDeviceMessage_whenConsumedFromDevicesTopic_thenProcessSaveOrUpdate() {
 
-        Device device = DeviceUtilData.getDevice1();
+        DeviceAvro device = DeviceUtilData.getDevice1();
 
         kafkaTemplate.send("devices", device.getDeviceId(), device);
 
         verify(processor, timeout(5000).times(1)).processDevices(anyList());
+    }
+
+    @Test
+    @DisplayName("Consume message from 'devices-delete' topic — should process delete")
+    void givenDeviceMessage_whenConsumedFromDevicesDeleteTopic_thenProcessDelete() {
+
+        DeviceAvro device = DeviceUtilData.getDevice1();
+
+        kafkaTemplate.send("devices-delete", device.getDeviceId(), device);
+
+        verify(processor, timeout(5000).times(1)).deleteDevices(anyList());
     }
 }

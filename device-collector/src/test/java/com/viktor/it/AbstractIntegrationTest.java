@@ -144,7 +144,7 @@ public abstract class AbstractIntegrationTest {
         var schema = """
                 {
                   "type": "record",
-                  "name": "Device",
+                  "name": "DeviceAvro",
                   "namespace": "com.viktor.avro",
                   "fields": [
                     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -156,6 +156,8 @@ public abstract class AbstractIntegrationTest {
                 """;
 
         registerSchema("devices-value", schema);
+
+        registerSchema("devices-delete-value", schema);
 
         registerSchema("devices.DLT-value", schema);
     }

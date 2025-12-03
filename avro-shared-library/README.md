@@ -20,13 +20,13 @@ Device.avsc
 ```avroschema
 {
   "type": "record",
-  "name": "DeviceEvent",
+  "name": "DeviceEventAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     { "name": "eventId", "type": { "type": "string", "avro.java.string": "String" } },
     { "name": "device", "type": {
         "type": "record",
-        "name": "Device",
+        "name": "DeviceAvro",
         "namespace": "com.viktor.avro",
         "fields": [
           {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -47,7 +47,7 @@ Device.avsc
 ```avroschema
 {
   "type": "record",
-  "name": "Device",
+  "name": "DeviceAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -116,6 +116,6 @@ make nexus-start
 
 Затем выполнить сборку и публикацию артефактов:
 ```
-make build-artifacts
+make build-shared-artifacts
 ```
 После успешной публикации библиотека станет доступна для скачивания из репозитория

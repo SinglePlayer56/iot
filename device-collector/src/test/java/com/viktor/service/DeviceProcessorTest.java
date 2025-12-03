@@ -4,6 +4,7 @@ import com.viktor.kafka.KafkaDeviceDltProducer;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.service.device.DeviceService;
 import com.viktor.utils.DeviceUtilData;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.BDDMockito;
@@ -33,6 +34,7 @@ public class DeviceProcessorTest {
     DeviceProcessor deviceProcessor;
 
     @Test
+    @DisplayName("Given device is saved successfully When processDevices called Then service invoked and no DLT message sent")
     void givenDeviceSavedSuccessfully_whenProcessDevices_thenServiceCalledAndNoDlt() {
         var device = DeviceUtilData.getDevice1();
 
@@ -46,6 +48,7 @@ public class DeviceProcessorTest {
     }
 
     @Test
+    @DisplayName("Given device save fails When processDevices called Then message sent to DLT")
     void givenDeviceFails_whenProcessDevices_thenMessageSentToDlt() {
         var device = DeviceUtilData.getDevice1();
 
@@ -59,6 +62,40 @@ public class DeviceProcessorTest {
                 .verifyComplete();
 
         BDDMockito.then(deviceService).should(atLeastOnce()).saveDevice(device);
+
+        BDDMockito.then(kafkaDeviceDltProducer).should(times(1))
+                .publishToDlt(eq(device), any(Throwable.class));
+    }
+
+    @Test
+    @DisplayName("Given device deleted successfully When deleteDevices called Then service invoked and no DLT message sent")
+    void givenDeviceDeletedSuccessfully_whenDeleteDevicesCalled_thenServiceInvokedAndNoDlt() {
+        var device = DeviceUtilData.getDevice1();
+
+        BDDMockito.given(deviceService.deleteDevice(device.getDeviceId())).willReturn(Mono.empty());
+
+        StepVerifier.create(deviceProcessor.deleteDevices(List.of(device)))
+                .verifyComplete();
+
+        BDDMockito.then(deviceService).should(times(1)).deleteDevice(device.getDeviceId());
+        BDDMockito.then(kafkaDeviceDltProducer).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("Given device delete fails When deleteDevices called Then message sent to DLT")
+    void givenDeviceDeleteFails_whenDeleteDevicesCalled_thenMessageSentToDlt() {
+        var device = DeviceUtilData.getDevice1();
+
+        BDDMockito.given(deviceService.deleteDevice(device.getDeviceId()))
+                .willReturn(Mono.error(new RuntimeException("db error")));
+
+        BDDMockito.given(kafkaDeviceDltProducer.publishToDlt(eq(device), any()))
+                .willReturn(Mono.empty());
+
+        StepVerifier.create(deviceProcessor.deleteDevices(List.of(device)))
+                .verifyComplete();
+
+        BDDMockito.then(deviceService).should(atLeastOnce()).deleteDevice(device.getDeviceId());
 
         BDDMockito.then(kafkaDeviceDltProducer).should(times(1))
                 .publishToDlt(eq(device), any(Throwable.class));

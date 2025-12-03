@@ -1,6 +1,6 @@
 package com.viktor.kafka;
 
-import com.viktor.avro.DeviceEvent;
+import com.viktor.avro.DeviceEventAvro;
 import com.viktor.service.event_collector.EventCollectorService;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class KafkaEventConsumer {
 
     @WithSpan("consume-events")
     @KafkaListener(topics = "${spring.kafka.consumer.read-topic}", groupId = "${spring.kafka.consumer.group-id}")
-    public void listen(List<DeviceEvent> deviceEvents, Acknowledgment ack) {
+    public void listen(List<DeviceEventAvro> deviceEvents, Acknowledgment ack) {
         log.info("Received events: {}", deviceEvents.size());
         eventCollectorService.processEvents(deviceEvents)
                 .doOnSuccess(_ -> ack.acknowledge())

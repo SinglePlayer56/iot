@@ -1,7 +1,8 @@
 # Device Collector Service
 
 Микросервис **Device Collector Service**:
-- подписывается на Kafka-топик `devices`
+- подписывается на Kafka-топик `devices` для добавления и обновления устройств
+- подписывается на Kafka-топик `devices-delete` для удаления устройств
 - получает события в формате Avro (валидация через Schema Registry)
 - сохраняет/обновляет устройство в PostgreSQL кластере
 - публикует необработанные сообщения в `devices.DLT` топик
@@ -10,12 +11,12 @@
 
 ## Avro-схемы
 
-### `devices-value`/`devices.DLT-value` (для топиков `devices` и `devices.DLT`)
+### `devices-value`/ `devices-delete-value` /`devices.DLT-value` (для топиков `devices`, `devices-delete` и `devices.DLT`)
 
 ```avroschema
 {
   "type": "record",
-  "name": "Device",
+  "name": "DeviceAvro",
   "namespace": "com.viktor.avro",
   "fields": [
     {"name": "deviceId", "type": { "type": "string", "avro.java.string": "String" }},
@@ -29,8 +30,9 @@
 > ⚠️ **Важно:** Avro-схемы необходимо добавить вручную в Schema Registry через Kafka UI (http://localhost:8070)
 > 1. Открой `Schema Registry`
 > 2. Добавь схему для `devices-value`
-> 3. Добавь схему для `devices.DLT-value`
-> 4. После этого можно публиковать сообщения в топик `devices`.
+> 3. Добавь схему для `devices-delete-value`
+> 4. Добавь схему для `devices.DLT-value`
+> 5. После этого можно публиковать сообщения в топик `devices`, `devices-delete`, `devices.DLT`.
 
 ---
 
@@ -48,7 +50,7 @@
 
 3. Зависимости:
     - Запущен контейнер nexus `make nexus-start`
-    - В Nexus опубликованы артефакты `make build-artifacts`
+    - В Nexus опубликованы артефакты `make build-shared-artifacts`
 
 3.  Используй команды `make` для управления сервисами:
 
@@ -65,7 +67,7 @@
 
 ---
 
-## Пример отправки события в топик `devices`
+## Пример отправки сообщения в топики `devices` и `devices-delete`
 
 ```json
 {
@@ -106,26 +108,29 @@
 
 ## Переменные окружения
 
-| Переменная                                | Описание                                                 | Пример                                                |
-|-------------------------------------------|-----------------------------------------------------------|-------------------------------------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT`             | Адрес OTLP-экспортера                                    | `http://alloy:4318`                                   |
-| `OTEL_EXPORTER_OTLP_PROTOCOL`             | Протокол для OTLP                                        | `http/protobuf`                                       |
-| `OTEL_METRICS_EXPORTER`                   | Экспорт метрик                                          | `none`                                                |
-| `OTEL_TRACES_EXPORTER`                    | Экспорт трейсов                                         | `otlp`                                                |
-| `OTEL_LOGS_EXPORTER`                      | Экспорт логов                                           | `none`                                                |
-| `OTEL_RESOURCE_ATTRIBUTES`                | Атрибуты ресурса OTEL (версия и окружение деплоя)         | `service.version=1.0.0,deployment.environment=docker` |
-| `KAFKA_ADDRESS`                           | Адрес брокера Kafka                                      | `kafka:9092`                                          |
-| `SCHEMA_REGISTRY_ADDRESS`                 | Адрес Schema Registry                                    | `schema-registry:8081`                                |
-| `POSTGRES_DEVICES_DB_NAME`                  | Имя базы данных устройств                                    | devices                                               |
-| `SHARD_0_MASTER_URL`                        | Адрес мастера шарда 0                                        | postgres-devices-shard-0-master:5432                  |
-| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 0                                        | postgres-devices-shard-0-replica:5432                 |
-| `SHARD_1_MASTER_URL`                        | Адрес мастера шарда 1                                        | postgres-devices-shard-1-master:5432                  |
-| `POSTGRES_DEVICES_USER_SHARD_0_MASTER`      | Пользователь мастера шарда 0                                 | postgres                                              |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER`  | Пароль мастера шарда 0                                       | postgres                                                |
-| `POSTGRES_DEVICES_USER_SHARD_0_REPLICA`     | Пользователь реплики шарда 0                                 | postgres                                |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA` | Пароль реплики шарда 0                                       | postgres                                                |
-| `POSTGRES_DEVICES_USER_SHARD_1_MASTER`      | Пользователь мастера шарда 1                                 | postgres                                 |
-| `POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER`  | Пароль мастера шарда 1                                       | postgres                                                |
+| Переменная                                  | Описание                                          | Пример                                                |
+|---------------------------------------------|---------------------------------------------------|-------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`               | Адрес OTLP-экспортера                             | `http://alloy:4318`                                   |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`               | Протокол для OTLP                                 | `http/protobuf`                                       |
+| `OTEL_METRICS_EXPORTER`                     | Экспорт метрик                                    | `none`                                                |
+| `OTEL_TRACES_EXPORTER`                      | Экспорт трейсов                                   | `otlp`                                                |
+| `OTEL_LOGS_EXPORTER`                        | Экспорт логов                                     | `none`                                                |
+| `OTEL_RESOURCE_ATTRIBUTES`                  | Атрибуты ресурса OTEL (версия и окружение деплоя) | `service.version=1.0.0,deployment.environment=docker` |
+| `KAFKA_ADDRESS`                             | Адрес брокера Kafka                               | `kafka:9092`                                          |
+| `SCHEMA_REGISTRY_ADDRESS`                   | Адрес Schema Registry                             | `schema-registry:8081`                                |
+| `POSTGRES_DEVICES_DB_NAME`                  | Имя базы данных устройств                         | devices                                               |
+| `SHARD_0_MASTER_URL`                        | Адрес мастера шарда 0                             | postgres-devices-shard-0-master:5432                  |
+| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 0                             | postgres-devices-shard-0-replica:5432                 |
+| `SHARD_1_MASTER_URL`                        | Адрес мастера шарда 1                             | postgres-devices-shard-1-master:5432                  |
+| `SHARD_0_REPLICA_URL`                       | Адрес реплики шарда 1                             | postgres-devices-shard-1-replica:5432                 |
+| `POSTGRES_DEVICES_USER_SHARD_0_MASTER`      | Пользователь мастера шарда 0                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER`  | Пароль мастера шарда 0                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_0_REPLICA`     | Пользователь реплики шарда 0                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA` | Пароль реплики шарда 0                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_1_MASTER`      | Пользователь мастера шарда 1                      | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER`  | Пароль мастера шарда 1                            | postgres                                              |
+| `POSTGRES_DEVICES_USER_SHARD_1_REPLICA`     | Пользователь реплики шарда 01                     | postgres                                              |
+| `POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA` | Пароль реплики шарда 1                            | postgres                                              |
 
 ---
 

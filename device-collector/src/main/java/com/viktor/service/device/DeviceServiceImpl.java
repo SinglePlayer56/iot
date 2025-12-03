@@ -1,6 +1,6 @@
 package com.viktor.service.device;
 
-import com.viktor.avro.Device;
+import com.viktor.avro.DeviceAvro;
 import com.viktor.dao.DeviceDao;
 import com.viktor.mapper.device.DeviceMapper;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -21,11 +21,22 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @WithSpan("save-device-service")
-    public Mono<Void> saveDevice(Device device) {
+    public Mono<Void> saveDevice(DeviceAvro device) {
         log.info("Saving device {}", device.getDeviceId());
         return Mono.<Void>fromCallable(() -> {
                     var entity = deviceMapper.toDeviceEntity(device);
                     deviceDao.save(entity);
+                    return null;
+                })
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    @WithSpan("delete-device-service")
+    public Mono<Void> deleteDevice(String deviceId) {
+        log.info("Delete device {}", deviceId);
+        return Mono.<Void>fromCallable(() -> {
+                    deviceDao.deleteById(deviceId);
                     return null;
                 })
                 .subscribeOn(Schedulers.boundedElastic());

@@ -56,10 +56,13 @@ services:
       - iot_network
     volumes:
       - postgres-devices-data-shard-1-master:/var/lib/postgresql/data
+      - ${PROJECT_DIR:-.}/postgresql/init-master.sh:/docker-entrypoint-initdb.d/00-init-master.sh:ro
     environment:
       POSTGRES_USER: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER}
       POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER}
       POSTGRES_DB: ${POSTGRES_DEVICES_DB_NAME}
+      REPL_USER: ${POSTGRES_REPLICATION_USER}
+      REPL_PASS: ${POSTGRES_REPLICATION_PASSWORD}
     command: >
       postgres -c wal_level=replica
                -c max_wal_senders=10
@@ -94,6 +97,32 @@ services:
       MASTER_HOST: postgres-devices-shard-0-master
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER_SHARD_0_REPLICA}" ]
+      interval: 10s
+      retries: 5
+
+  postgres-devices-shard-1-replica:
+    image: postgres:17
+    container_name: postgres-devices-shard-1-replica
+    restart: unless-stopped
+    ports:
+      - "5439:5432"
+    networks:
+      - iot_network
+    depends_on:
+      postgres-devices-shard-1-master:
+        condition: service_healthy
+    volumes:
+      - postgres-devices-data-shard-1-replica:/var/lib/postgresql/data
+      - ${PROJECT_DIR:-.}/postgresql/replica-init.sh:/docker-entrypoint-initdb.d/00-replica-init.sh:ro
+    environment:
+      POSTGRES_USER: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}
+      POSTGRES_PASSWORD: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}
+      POSTGRES_DB: ${POSTGRES_DEVICES_DB_NAME}
+      REPL_USER: ${POSTGRES_REPLICATION_USER}
+      REPL_PASS: ${POSTGRES_REPLICATION_PASSWORD}
+      MASTER_HOST: postgres-devices-shard-1-master
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}" ]
       interval: 10s
       retries: 5
 
@@ -170,12 +199,13 @@ services:
       KC_DB_URL_DATABASE: ${POSTGRES_KEYCLOAK_DB}
       KC_HOSTNAME: ${KEYCLOAK_HOST:-localhost}
       KC_HOSTNAME_ADMIN_URL: http://${KEYCLOAK_HOST:-localhost}:8080
-
       KC_METRICS_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     command:
       - start-dev
       - --import-realm
+    volumes:
+      - ${PROJECT_DIR:-.}/keycloak:/opt/keycloak/data/import
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsS http://localhost:9000/healthy/ready || exit 1" ]
       interval: 10s
@@ -486,7 +516,23 @@ services:
     environment:
       DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_0_REPLICA}:${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA}@postgres-devices-shard-0-replica:5432/${POSTGRES_DEVICES_DB_NAME}?sslmode=disable
     depends_on:
-      postgres-devices-shard-0-master:
+      postgres-devices-shard-0-replica:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-exporter-devices-shard-1-replica:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres-exporter-devices-shard-1-replica
+    networks:
+      - iot_network
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}:${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}@postgres-devices-shard-1-replica:5432/${POSTGRES_DEVICES_DB_NAME}?sslmode=disable
+    depends_on:
+      postgres-devices-shard-1-replica:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
@@ -641,12 +687,15 @@ services:
       SHARD_0_MASTER_URL: postgres-devices-shard-0-master:5432
       SHARD_0_REPLICA_URL: postgres-devices-shard-0-replica:5432
       SHARD_1_MASTER_URL: postgres-devices-shard-1-master:5432
+      SHARD_1_REPLICA_URL: postgres-devices-shard-1-replica:5432
       POSTGRES_DEVICES_USER_SHARD_0_MASTER: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER}
       POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER}
       POSTGRES_DEVICES_USER_SHARD_0_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA}
       POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA}
       POSTGRES_DEVICES_USER_SHARD_1_MASTER: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER}
       POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER}
+      POSTGRES_DEVICES_USER_SHARD_1_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}
+      POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}
     depends_on:
       kafka:
         condition: service_healthy
@@ -657,6 +706,71 @@ services:
       postgres-devices-shard-0-replica:
         condition: service_healthy
       postgres-devices-shard-1-master:
+        condition: service_healthy
+      postgres-devices-shard-1-replica:
+        condition: service_healthy
+    networks:
+      - iot_network
+
+  device-service:
+    image: device-service:latest
+    container_name: device-service
+    build:
+      context: ../device-service
+      dockerfile: ../device-service/Dockerfile
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+        TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        DOCKER_HOST: host.docker.internal:2375
+    ports:
+      - "8203:8203"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
+      KAFKA_ADDRESS: kafka:9092
+      SCHEMA_REGISTRY_ADDRESS: schema-registry:8081
+      POSTGRES_DEVICES_DB_NAME: ${POSTGRES_DEVICES_DB_NAME}
+      SHARD_0_MASTER_URL: postgres-devices-shard-0-master:5432
+      SHARD_0_REPLICA_URL: postgres-devices-shard-0-replica:5432
+      SHARD_1_MASTER_URL: postgres-devices-shard-1-master:5432
+      SHARD_1_REPLICA_URL: postgres-devices-shard-1-replica:5432
+      POSTGRES_DEVICES_USER_SHARD_0_MASTER: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER}
+      POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER}
+      POSTGRES_DEVICES_USER_SHARD_0_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA}
+      POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA}
+      POSTGRES_DEVICES_USER_SHARD_1_MASTER: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER}
+      POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER}
+      POSTGRES_DEVICES_USER_SHARD_1_REPLICA: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA}
+      POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA}
+      KC_DS_CLIENT_ID: ${KC_DS_CLIENT_ID}
+      KEYCLOAK_ISS_URL: ${KEYCLOAK_ISS_URL}
+      KEYCLOAK_JWK_URL: ${KEYCLOAK_JWK_URL}
+      MONITORING_TOKEN: ${MONITORING_TOKEN}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      postgres-devices-shard-0-master:
+        condition: service_healthy
+      postgres-devices-shard-0-replica:
+        condition: service_healthy
+      postgres-devices-shard-1-master:
+        condition: service_healthy
+      postgres-devices-shard-1-replica:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - iot_network
@@ -680,6 +794,25 @@ services:
       interval: 5s
       timeout: 10s
       retries: 30
+
+  device-service-publisher:
+    build:
+      context: ../device-service
+      dockerfile: ../device-service/DockerfilePublisher
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+        TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        DOCKER_HOST: host.docker.internal:2375
+    depends_on:
+      nexus:
+        condition: service_healthy
+    networks:
+      - iot_network
+
 
   avro-shared-library-publisher:
     build:
@@ -714,3 +847,4 @@ volumes:
   postgres-devices-data-shard-1-master:
   postgres-devices-data-shard-0-replica:
   etcd-data:
+  postgres-devices-data-shard-1-replica:

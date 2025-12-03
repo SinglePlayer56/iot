@@ -30,7 +30,8 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       enable-auto-commit: false
       max-poll-records: 100
-      read-topic: devices
+      save-update-topic: devices
+      delete-topic: devices-delete
       group-id: devices-collector-group
       auto-offset-reset: earliest
       properties:
@@ -96,4 +97,7 @@ sharding:
         url: jdbc:postgresql://${SHARD_1_MASTER_URL:localhost:5437}/${POSTGRES_DEVICES_DB_NAME:devices}
         username: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER:postgres}
         password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER:postgres}
-      replicas: [ ]
+      replicas:
+        - url: jdbc:postgresql://${SHARD_1_REPLICA_URL:localhost:5439}/${POSTGRES_DEVICES_DB_NAME:devices}
+          username: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA:postgres}
+          password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA:postgres}

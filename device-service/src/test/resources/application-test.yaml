@@ -1,0 +1,103 @@
+spring:
+  application:
+    name: device-service
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${KC_DS_CLIENT_ID:device-service}
+            client-name: ${KC_DS_CLIENT_ID:device-service}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_REALM_URL:http://localhost:8080/realms/iot}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis}
+      timeout: 2000
+      ttl: 120
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          time-between-eviction-runs: 2000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        naming:
+          physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
+          implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDRESS:localhost:9094}
+    properties:
+      schema.registry.url: http://${SCHEMA_REGISTRY_ADDRESS:localhost:8081}
+      specific.avro.reader: true
+
+    listener:
+      type: batch
+      ack-mode: manual
+      poll-timeout: 1000
+      concurrency: 4
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      write-create-update-topic: devices
+      write-delete-topic: devices-delete
+      properties:
+        auto.register.schemas: false
+        acks: all
+        enable.idempotence: true
+
+monitoring:
+  token: ${MONITORING_TOKEN:prometheus}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+sharding:
+  dbName: devices
+
+  shardingAlgorithm: "shard${Math.abs(device_id.hashCode()) % 2}"
+
+  table:
+    name: devices
+    shardingColumn: device_id
+
+  shards:
+    - name: shard0
+      master:
+        url: jdbc:postgresql://${SHARD_0_MASTER_URL:localhost:5434}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_0_MASTER:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_MASTER:postgres}
+      replicas:
+        - url: jdbc:postgresql://${SHARD_0_REPLICA_URL:localhost:5438}/${POSTGRES_DEVICES_DB_NAME:devices}
+          username: ${POSTGRES_DEVICES_USER_SHARD_0_REPLICA:postgres}
+          password: ${POSTGRES_DEVICES_PASSWORD_SHARD_0_REPLICA:postgres}
+
+    - name: shard1
+      master:
+        url: jdbc:postgresql://${SHARD_1_MASTER_URL:localhost:5437}/${POSTGRES_DEVICES_DB_NAME:devices}
+        username: ${POSTGRES_DEVICES_USER_SHARD_1_MASTER:postgres}
+        password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_MASTER:postgres}
+      replicas:
+        - url: jdbc:postgresql://${SHARD_1_REPLICA_URL:localhost:5439}/${POSTGRES_DEVICES_DB_NAME:devices}
+          username: ${POSTGRES_DEVICES_USER_SHARD_1_REPLICA:postgres}
+          password: ${POSTGRES_DEVICES_PASSWORD_SHARD_1_REPLICA:postgres}
