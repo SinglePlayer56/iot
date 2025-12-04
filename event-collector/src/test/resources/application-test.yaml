@@ -1,6 +1,7 @@
 spring:
   kafka:
     topic
+  dlt-topic: dlt-topic
   flyway:
     enabled: false
 management:

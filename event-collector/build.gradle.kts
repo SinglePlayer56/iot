@@ -4,7 +4,7 @@ val versions = mapOf(
     "jdbcCassandra" to "4.16.0",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.2"
+    "avroSharedLibrary" to "1.0.3"
 )
 
 plugins {

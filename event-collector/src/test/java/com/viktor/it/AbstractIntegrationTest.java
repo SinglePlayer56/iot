@@ -25,9 +25,9 @@ public abstract class AbstractIntegrationTest {
 
     private static final Network network;
 
-    private static final CassandraContainer<?> cassandra;
-    private static final GenericContainer<?> kafka;
-    private static final GenericContainer<?> schemaRegistry;
+    public static final CassandraContainer<?> cassandra;
+    public static final GenericContainer<?> kafka;
+    public static final GenericContainer<?> schemaRegistry;
 
     public static final String HOST = Objects.nonNull(System.getenv("TESTCONTAINERS_HOST_OVERRIDE")) ?
             System.getenv("TESTCONTAINERS_HOST_OVERRIDE") : "localhost";
@@ -153,6 +153,23 @@ public abstract class AbstractIntegrationTest {
                    ]
                  }
                 """);
+
+        var dltSchema = """
+                {
+                  "type": "record",
+                  "name": "DltError",
+                  "namespace": "com.viktor.avro",
+                  "fields": [
+                    {"name": "reason", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "errorSource", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "stackTrace", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "traceId", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "receivedAt", "type": "long"}
+                  ]
+                }
+                """;
+
+        registerSchema("dlt-topic-value", dltSchema);
     }
 
     private static void registerSchema(String subject, String schemaJson) throws Exception {
