@@ -1,7 +1,7 @@
 package com.viktor.service.device;
 
 import com.viktor.avro.DeviceAvro;
-import com.viktor.kafka.KafkaDeviceDltProducer;
+import com.viktor.kafka.KafkaDltProducer;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ import java.util.List;
 public class DeviceProcessor {
 
     private final DeviceService deviceService;
-    private final KafkaDeviceDltProducer kafkaDeviceDltProducer;
+    private final KafkaDltProducer kafkaDltProducer;
 
     @WithSpan("process-devices")
     public Flux<Void> processDevices(List<DeviceAvro> devices) {
@@ -44,7 +44,7 @@ public class DeviceProcessor {
                         .filter(ex -> ex instanceof Exception)
                         .onRetryExhaustedThrow((_, signal) -> signal.failure())
                 )
-                .onErrorResume(ex -> kafkaDeviceDltProducer.publishToDlt(device, ex));
+                .onErrorResume(ex -> kafkaDltProducer.publishToDlt(device, ex));
     }
 
     @WithSpan("delete-device")
@@ -56,6 +56,6 @@ public class DeviceProcessor {
                         .filter(ex -> ex instanceof Exception)
                         .onRetryExhaustedThrow((_, signal) -> signal.failure())
                 )
-                .onErrorResume(ex -> kafkaDeviceDltProducer.publishToDlt(device, ex));
+                .onErrorResume(ex -> kafkaDltProducer.publishToDlt(device, ex));
     }
 }

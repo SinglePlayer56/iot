@@ -16,7 +16,7 @@ import java.util.Arrays;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class KafkaDeviceDltProducer {
+public class KafkaDltProducer {
 
     private final KafkaTemplate<Object, DltError> kafkaTemplate;
 

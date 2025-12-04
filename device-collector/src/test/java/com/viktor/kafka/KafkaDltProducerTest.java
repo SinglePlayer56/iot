@@ -20,13 +20,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
-public class KafkaDeviceDltProducerTest {
+public class KafkaDltProducerTest {
 
     @Mock
     KafkaTemplate<Object, DltError> template;
 
     @InjectMocks
-    KafkaDeviceDltProducer producer;
+    KafkaDltProducer producer;
 
     @Test
     void givenDevice_whenPublishToDlt_thenKafkaTemplateSendCalled() {
