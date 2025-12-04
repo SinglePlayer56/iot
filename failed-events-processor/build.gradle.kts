@@ -5,7 +5,8 @@ val versions = mapOf(
     "avroSharedLibrary" to "1.0.3",
     "mapStruct" to "1.6.3",
     "mapStructBinding" to "0.2.0",
-    "minio" to "8.6.0"
+    "minio" to "8.6.0",
+    "minioTestContainer" to "2.0.2"
 )
 
 plugins {
@@ -86,6 +87,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
     testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")
+    testImplementation("org.testcontainers:testcontainers-minio:${versions["minioTestContainer"]}")
 }
 
 tasks.withType<Test> {
