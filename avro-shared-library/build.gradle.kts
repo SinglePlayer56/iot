@@ -1,4 +1,4 @@
-val libVersion = "1.0.2"
+val libVersion = "1.0.3"
 
 plugins {
     `java-library`

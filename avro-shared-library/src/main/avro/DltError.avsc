@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "DltError",
+  "namespace": "com.viktor.avro",
+  "fields": [
+    {"name": "reason", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "errorSource", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "stackTrace", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "traceId", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "receivedAt", "type": "long"}
+  ]
+}
