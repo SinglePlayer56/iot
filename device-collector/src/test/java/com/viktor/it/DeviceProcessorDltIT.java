@@ -1,6 +1,7 @@
 package com.viktor.it;
 
 import com.viktor.avro.DeviceAvro;
+import com.viktor.avro.DltError;
 import com.viktor.dao.DeviceDao;
 import com.viktor.exception.ShardErrorException;
 import com.viktor.utils.DeviceUtilData;
@@ -36,7 +37,7 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
     @MockitoSpyBean
     private DeviceDao deviceDao;
 
-    private KafkaConsumer<String, DeviceAvro> createDltConsumer() {
+    private KafkaConsumer<String, DltError> createDltConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "dlt-test-group");
@@ -66,29 +67,30 @@ public class DeviceProcessorDltIT extends AbstractIntegrationTest {
 
         DeviceAvro device = DeviceUtilData.getDevice1();
 
-        Mockito.doThrow(new ShardErrorException("DB failure", device.getDeviceId()))
+        ShardErrorException ex = new ShardErrorException("DB failure", device.getDeviceId());
+        Mockito.doThrow(ex)
                 .when(deviceDao)
                 .save(any());
 
-        kafkaTemplate.send("devices", device.getDeviceId(), device).get();
+        kafkaTemplate.send("devices", device).get();
 
         Thread.sleep(5000);
 
-        try (KafkaConsumer<String, DeviceAvro> dltConsumer = createDltConsumer()) {
+        try (KafkaConsumer<String, DltError> dltConsumer = createDltConsumer()) {
 
-            dltConsumer.subscribe(List.of("devices.DLT"));
+            dltConsumer.subscribe(List.of("dlt-topic"));
 
-            ConsumerRecords<String, DeviceAvro> records =
+            ConsumerRecords<String, DltError> records =
                     dltConsumer.poll(Duration.ofSeconds(10));
 
             assertThat(records.count())
                     .as("DLT topic must contain 1 failed message")
                     .isEqualTo(1);
 
-            DeviceAvro dltMsg = records.iterator().next().value();
+            DltError dltMsg = records.iterator().next().value();
 
-            assertThat(dltMsg.getDeviceId())
-                    .isEqualTo(device.getDeviceId());
+            assertThat(dltMsg.getReason())
+                    .isEqualTo(ex.getMessage());
         }
     }
 }

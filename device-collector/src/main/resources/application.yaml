@@ -17,6 +17,8 @@ spring:
       poll-timeout: 1000
       concurrency: 4
 
+    dlt-topic: dlt-topic
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer

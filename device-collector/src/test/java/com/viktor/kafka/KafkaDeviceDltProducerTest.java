@@ -1,5 +1,6 @@
 package com.viktor.kafka;
 
+import com.viktor.avro.DltError;
 import com.viktor.utils.DeviceUtilData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,7 @@ import reactor.test.StepVerifier;
 
 import java.util.concurrent.CompletableFuture;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 
@@ -21,7 +23,7 @@ import static org.mockito.Mockito.times;
 public class KafkaDeviceDltProducerTest {
 
     @Mock
-    KafkaTemplate<Object, Object> template;
+    KafkaTemplate<Object, DltError> template;
 
     @InjectMocks
     KafkaDeviceDltProducer producer;
@@ -30,17 +32,18 @@ public class KafkaDeviceDltProducerTest {
     void givenDevice_whenPublishToDlt_thenKafkaTemplateSendCalled() {
         var device = DeviceUtilData.getDevice1();
 
-        CompletableFuture<SendResult<Object, Object>> future =
+        CompletableFuture<SendResult<Object, DltError>> future =
                 CompletableFuture.completedFuture(null);
 
         BDDMockito.willReturn(future)
-                .given(template).send(eq("devices.DLT"), eq(device));
+                .given(template).send(eq("dlt-topic"), any(DltError.class));
 
-        ReflectionTestUtils.setField(producer, "topicName", "devices");
+        ReflectionTestUtils.setField(producer, "dltTopicName", "dlt-topic");
+        ReflectionTestUtils.setField(producer, "appName", "device-collector");
 
         StepVerifier.create(producer.publishToDlt(device, new RuntimeException("err")))
                 .verifyComplete();
 
-        BDDMockito.then(template).should(times(1)).send("devices.DLT", device);
+        BDDMockito.then(template).should(times(1)).send(eq("dlt-topic"), any(DltError.class));
     }
 }

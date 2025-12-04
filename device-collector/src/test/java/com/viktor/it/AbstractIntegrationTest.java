@@ -155,11 +155,26 @@ public abstract class AbstractIntegrationTest {
                 }
                 """;
 
+        var dltSchema = """
+                {
+                  "type": "record",
+                  "name": "DltError",
+                  "namespace": "com.viktor.avro",
+                  "fields": [
+                    {"name": "reason", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "errorSource", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "stackTrace", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "traceId", "type": {"type": "string", "avro.java.string": "String" }},
+                    {"name": "receivedAt", "type": "long"}
+                  ]
+                }
+                """;
+
         registerSchema("devices-value", schema);
 
         registerSchema("devices-delete-value", schema);
 
-        registerSchema("devices.DLT-value", schema);
+        registerSchema("dlt-topic-value", dltSchema);
     }
 
     private static void registerSchema(String subject, String schemaJson) throws Exception {

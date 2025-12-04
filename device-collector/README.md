@@ -5,13 +5,13 @@
 - подписывается на Kafka-топик `devices-delete` для удаления устройств
 - получает события в формате Avro (валидация через Schema Registry)
 - сохраняет/обновляет устройство в PostgreSQL кластере
-- публикует необработанные сообщения в `devices.DLT` топик
+- публикует ошибки обработки сообщений в `dlt-topic` топик
 
 ---
 
 ## Avro-схемы
 
-### `devices-value`/ `devices-delete-value` /`devices.DLT-value` (для топиков `devices`, `devices-delete` и `devices.DLT`)
+### `devices-value`/ `devices-delete-value` (для топиков `devices`, `devices-delete`)
 
 ```avroschema
 {
@@ -27,12 +27,28 @@
 }
 ```
 
+### `dlt-topic-value` (для топики `dlt-topic`)
+```avroschema
+{
+  "type": "record",
+  "name": "DltError",
+  "namespace": "com.viktor.avro",
+  "fields": [
+    {"name": "reason", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "errorSource", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "stackTrace", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "traceId", "type": {"type": "string", "avro.java.string": "String" }},
+    {"name": "receivedAt", "type": "long"}
+  ]
+}
+```
+
 > ⚠️ **Важно:** Avro-схемы необходимо добавить вручную в Schema Registry через Kafka UI (http://localhost:8070)
 > 1. Открой `Schema Registry`
 > 2. Добавь схему для `devices-value`
 > 3. Добавь схему для `devices-delete-value`
-> 4. Добавь схему для `devices.DLT-value`
-> 5. После этого можно публиковать сообщения в топик `devices`, `devices-delete`, `devices.DLT`.
+> 4. Добавь схему для `dlt-topic-value`
+> 5. После этого можно публиковать сообщения в топик `devices`, `devices-delete`, `dlt-topic`.
 
 ---
 
