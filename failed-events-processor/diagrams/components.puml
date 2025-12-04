@@ -8,6 +8,7 @@ Container_Boundary(failed_events_processor, "FailedEventsProcessor") {
     Component(file_naming_service, "FileNamingService", "Utility", "Генерация уникальных имён файлов")
     Component(storage_service, "StorageService", "MinIO Client", "Запись и чтение объектов (JSON) в MinIO")
     Component(kafka_error_handler, "Kafka Error Handler", "Error Handler", "Обработка сообщения неверной схемы, сдвигает offset")
+    Component(configs, "Configs", "Configuration")
 
     Rel(dlt_consumer, failed_event_handler, "Передача сообщения для обработки")
     Rel(dlt_consumer, kafka_error_handler, "Проброс сообщения с невалидной схемой")

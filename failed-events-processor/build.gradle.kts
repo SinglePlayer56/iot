@@ -2,9 +2,10 @@ val versions = mapOf(
     "avroSerializer" to "7.7.5",
     "testContainer" to "1.21.3",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.1",
+    "avroSharedLibrary" to "1.0.3",
     "mapStruct" to "1.6.3",
-    "mapStructBinding" to "0.2.0"
+    "mapStructBinding" to "0.2.0",
+    "minio" to "8.6.0"
 )
 
 plugins {
@@ -61,6 +62,8 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.confluent:kafka-avro-serializer:${versions["avroSerializer"]}")
     implementation("com.viktor:avro-shared-library:${versions["avroSharedLibrary"]}")
+
+    implementation("io.minio:minio:${versions["minio"]}")
 
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
