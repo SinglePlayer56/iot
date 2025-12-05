@@ -1,7 +1,7 @@
 package com.viktor.failed_events_processor.it;
 
 import com.viktor.avro.DltError;
-import com.viktor.failed_events_processor.service.FailedEventHandler;
+import com.viktor.failed_events_processor.service.handler.FailedEventHandler;
 import com.viktor.failed_events_processor.utils.DltErrorData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

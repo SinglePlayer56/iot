@@ -1,7 +1,7 @@
 package com.viktor.failed_events_processor.kafka;
 
 import com.viktor.avro.DltError;
-import com.viktor.failed_events_processor.service.FailedEventHandler;
+import com.viktor.failed_events_processor.service.handler.FailedEventHandler;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,7 @@
 package com.viktor.failed_events_processor.service;
 
 import com.viktor.avro.DltError;
+import com.viktor.failed_events_processor.service.naming.FileNamingService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

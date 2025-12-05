@@ -1,7 +1,8 @@
-package com.viktor.failed_events_processor.service;
+package com.viktor.failed_events_processor.service.minio;
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,7 @@ public class StorageService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
+    @WithSpan("save-minio")
     public Mono<Void> save(String json, String fileName) {
         return Mono.<Void>fromCallable(() -> {
                     byte[] bytes = json.getBytes(StandardCharsets.UTF_8);

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.viktor.avro.DltError;
 import com.viktor.failed_events_processor.dto.ErrorDto;
 import com.viktor.failed_events_processor.mapper.ErrorMapper;
+import com.viktor.failed_events_processor.service.serialize.ErrorSerializer;
 import com.viktor.failed_events_processor.utils.DltErrorData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

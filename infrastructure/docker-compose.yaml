@@ -348,6 +348,8 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_PROMETHEUS_AUTH_TYPE: public
     command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
@@ -713,6 +715,45 @@ services:
     networks:
       - iot_network
 
+  failed-events-processor:
+    image: failed-events-processor:latest
+    container_name: failed-events-processor
+    build:
+      context: ../failed-events-processor
+      dockerfile: ../failed-events-processor/Dockerfile
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        NEXUS_URL: http://host.docker.internal:8085/repository/maven-releases/
+        NEXUS_USERNAME: ${NEXUS_USERNAME}
+        NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+        TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        DOCKER_HOST: host.docker.internal:2375
+    ports:
+      - "8204:8204"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
+      KAFKA_ADDRESS: kafka:9092
+      SCHEMA_REGISTRY_ADDRESS: schema-registry:8081
+      MINIO_HOST: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - iot_network
+
   device-service:
     image: device-service:latest
     container_name: device-service
@@ -849,3 +890,4 @@ volumes:
   postgres-devices-data-shard-0-replica:
   etcd-data:
   postgres-devices-data-shard-1-replica:
+  minio-data:

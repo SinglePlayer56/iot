@@ -1,6 +1,7 @@
-package com.viktor.failed_events_processor.service;
+package com.viktor.failed_events_processor.service.naming;
 
 import com.viktor.avro.DltError;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,7 @@ public class FileNamingService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
+    @WithSpan("generate-file-name")
     public String generateFileName(DltError dltError) {
         String sourcePart = dltError.getErrorSource();
         String traceIdPart = dltError.getTraceId();

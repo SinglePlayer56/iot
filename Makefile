@@ -39,7 +39,7 @@ DEVICE_SERVICE_MONITORING ?= $(MONITORING_SERVICES) redis-exporter kafka-exporte
 							postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
 	  						postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica
 
-FAILED_EVENTS_PROCESSOR ?= $(KAFKA_SERVICES) minio
+FAILED_EVENTS_PROCESSOR ?= failed-events-processor $(KAFKA_SERVICES) minio
 
 FAILED_EVENTS_PROCESSOR_MONITORING ?= kafka-exporter $(MONITORING_SERVICES)
 

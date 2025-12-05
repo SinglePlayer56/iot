@@ -41,7 +41,7 @@ minio:
   host: ${MINIO_HOST:http://127.0.0.1:9000}
   username: ${MINIO_ROOT_USER:minio1234}
   password: ${MINIO_ROOT_PASSWORD:minio1234}
-  bucket-name: ${MINIO_BACKET_NAME:failed-events-processor}
+  bucket-name: ${MINIO_BUCKET_NAME:failed-events-processor}
 
 management:
   server:

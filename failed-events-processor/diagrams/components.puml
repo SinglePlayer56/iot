@@ -9,12 +9,15 @@ Container_Boundary(failed_events_processor, "FailedEventsProcessor") {
     Component(storage_service, "StorageService", "MinIO Client", "Запись и чтение объектов (JSON) в MinIO")
     Component(kafka_error_handler, "Kafka Error Handler", "Error Handler", "Обработка сообщения неверной схемы, сдвигает offset")
     Component(configs, "Configs", "Configuration")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(metrics_service, "Metrics Service", "Micrometer", "Добавление кастомных метрик")
 
     Rel(dlt_consumer, failed_event_handler, "Передача сообщения для обработки")
     Rel(dlt_consumer, kafka_error_handler, "Проброс сообщения с невалидной схемой")
     Rel(failed_event_handler, file_naming_service, "Получает уникальное имя файла")
     Rel(failed_event_handler, error_serializer, "Получает JSON представление сообщения")
     Rel(failed_event_handler, storage_service, "Передаёт сформированный JSON и имя файла")
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
 }
 
 ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt-topic топик")

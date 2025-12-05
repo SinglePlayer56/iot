@@ -1,9 +1,9 @@
 package com.viktor.failed_events_processor.it;
 
 import com.viktor.avro.DltError;
-import com.viktor.failed_events_processor.service.ErrorSerializer;
-import com.viktor.failed_events_processor.service.FileNamingService;
-import com.viktor.failed_events_processor.service.StorageService;
+import com.viktor.failed_events_processor.service.serialize.ErrorSerializer;
+import com.viktor.failed_events_processor.service.naming.FileNamingService;
+import com.viktor.failed_events_processor.service.minio.StorageService;
 import com.viktor.failed_events_processor.utils.DltErrorData;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;

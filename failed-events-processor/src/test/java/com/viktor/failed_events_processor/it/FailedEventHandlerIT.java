@@ -1,7 +1,7 @@
 package com.viktor.failed_events_processor.it;
 
 import com.viktor.avro.DltError;
-import com.viktor.failed_events_processor.service.FailedEventHandler;
+import com.viktor.failed_events_processor.service.handler.FailedEventHandler;
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
 import io.minio.Result;

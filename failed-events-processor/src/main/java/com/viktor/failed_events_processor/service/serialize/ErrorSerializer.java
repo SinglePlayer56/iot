@@ -1,10 +1,11 @@
-package com.viktor.failed_events_processor.service;
+package com.viktor.failed_events_processor.service.serialize;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.viktor.avro.DltError;
 import com.viktor.failed_events_processor.dto.ErrorDto;
 import com.viktor.failed_events_processor.mapper.ErrorMapper;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class ErrorSerializer {
     private final ObjectMapper objectMapper;
     private final ErrorMapper errorMapper;
 
+    @WithSpan("to-json")
     public String toJson(DltError error) {
         try {
             ErrorDto errorDto = errorMapper.toErrorDto(error);
