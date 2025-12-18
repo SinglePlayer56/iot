@@ -2,9 +2,10 @@ val versions = mapOf(
     "avroSerializer" to "7.7.5",
     "flyway" to "11.14.1",
     "jdbcCassandra" to "4.16.0",
-    "testContainer" to "1.21.3",
+    "testContainer" to "1.21.4",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.3"
+    "avroSharedLibrary" to "1.0.3",
+    "testContainerCore" to "2.0.3"
 )
 
 plugins {
@@ -79,6 +80,8 @@ dependencies {
 
     implementation("net.logstash.logback:logstash-logback-encoder:${versions["logstashVersion"]}")
 
+    testImplementation("org.testcontainers:testcontainers:${versions["testContainerCore"]}")
+    testImplementation("org.testcontainers:testcontainers-cassandra:${versions["testContainerCore"]}")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

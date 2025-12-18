@@ -1,12 +1,12 @@
 val versions = mapOf(
     "avroSerializer" to "7.7.5",
-    "testContainer" to "1.21.3",
+    "testContainer" to "1.21.4",
     "logstashVersion" to "7.4",
     "avroSharedLibrary" to "1.0.3",
     "mapStruct" to "1.6.3",
     "mapStructBinding" to "0.2.0",
     "minio" to "8.6.0",
-    "minioTestContainer" to "2.0.2"
+    "testContainerCore" to "2.0.3"
 )
 
 plugins {
@@ -85,10 +85,11 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
+    testImplementation("org.testcontainers:testcontainers:${versions["testContainerCore"]}")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
     testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")
-    testImplementation("org.testcontainers:testcontainers-minio:${versions["minioTestContainer"]}")
+    testImplementation("org.testcontainers:testcontainers-minio:${versions["testContainerCore"]}")
 }
 
 tasks.withType<Test> {
