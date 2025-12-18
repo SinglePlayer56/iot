@@ -1,0 +1,66 @@
+@startuml
+
+actor Orchestrator
+actor Router
+
+participant "GRPCControllerV1" as GRPC
+participant "CommandService" as CS
+participant "RouterService" as RS
+participant "CommandRepository" as CR
+participant "RouterRepository" as RR
+database "DB" as DB
+
+== gRPC /api/v1/send-command (от оркестратора) ==
+
+Orchestrator -> GRPC : gRPC /api/v1/send-command
+GRPC -> CS : createCommand
+CS -> CR : save(command, PENDING)
+CR -> DB : INSERT INTO commands (PENDING)
+DB --> CR : command_id
+CR --> CS : command_id
+CS --> GRPC : command_id
+GRPC --> Orchestrator : OK
+
+== gRPC /api/v1/commands/poll (роутер забирает команды) ==
+
+Router -> GRPC : gRPC /api/v1/commands/poll
+GRPC -> RS : updateLastSeen(router_id)
+RS -> RR : updateLastSeen(router_id)
+RR -> DB : UPDATE last_seen_at
+DB --> RR: OK
+RR --> RS: OK
+RS --> GRPC: OK
+
+GRPC -> CS : getCommandsForRouter(router_id)
+CS -> CR : findPendingCommands(router_id)
+CR -> DB : SELECT commands WHERE status=PENDING
+DB --> CR : commands
+CR --> CS : commands
+CS --> GRPC : commands
+GRPC --> Router : commands
+
+GRPC -> CS : markCommandsAsSent(command_ids)
+CS -> CR : updateStatus(SENT, sent_at)
+CR -> DB : UPDATE commands SET status=SENT, sent_at=now()
+DB --> CR: OK
+CR --> CS: OK
+CS --> GRPC: OK
+
+== gRPC /api/v1/commands/ack (подтверждение выполнения) ==
+
+Router -> GRPC : gRPC /api/v1/commands/ack
+GRPC -> RS : updateLastSeen(router_id)
+RS -> RR : updateLastSeen(router_id)
+RR -> DB : UPDATE last_seen_at
+DB --> RR: OK
+RR --> RS: OK
+RS --> GRPC: OK
+
+GRPC -> CS : ackCommand(command_id)
+CS -> CR : updateStatus(ACKED, acked_at)
+CR -> DB : UPDATE commands SET status=ACKED, acked_at=now()
+DB --> CR : OK
+CR --> CS : OK
+CS --> GRPC : OK
+
+@enduml

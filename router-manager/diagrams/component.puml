@@ -1,0 +1,39 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Person(router, "Router", "Получает и подтверждает команды")
+
+System_Boundary(router_manager_service, "router-manager") {
+
+  Component(grpc_controller, "GRPCControllerV1", "grpc", "Принимает запросы по gRPC")
+
+  Component(command_service, "CommandService", "Go", "Бизнес логика работы с командами")
+  Component(router_service, "RouterService", "Go", "Бизнес логика работы с роутерами")
+
+  Component(command_repository, "CommandRepository", "pgx", "CRUD операции с командами")
+  Component(router_repository, "RouterRepository", "pgx", "CRUD операции с роутерами")
+
+  Component(config_loader, "ConfigLoader", "encoding/json", "Загрузка config.json")
+  Component(log, "Logger", "slog", "Настройки логера")
+
+  Rel(router, grpc_controller, "gRPC", "/commands/poll , /commands/ack")
+  Rel(grpc_controller, router, "gRPC", "/send-command")
+
+  Rel(grpc_controller, command_service, "calls", "send/poll/ack")
+  Rel(grpc_controller, router_service, "calls", "register/heartbeat + last_seen")
+
+  Rel(command_service, command_repository, "uses")
+  Rel(router_service, router_repository, "uses")
+
+  Rel(config_loader, grpc_controller, "config")
+  Rel(log, grpc_controller, "logs")
+  Rel(log, command_service, "logs")
+  Rel(log, command_repository, "logs")
+}
+
+ComponentDb(router_manager_data, "Router Manager DB", "PostgreSQL", "Хранилище с данными о роутерах и командах")
+
+Rel(command_repository, router_manager_data, "CRUD операции")
+Rel(router_repository, router_manager_data, "CRUD операции")
+
+@enduml
