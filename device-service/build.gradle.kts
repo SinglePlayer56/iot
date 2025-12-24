@@ -3,9 +3,9 @@ import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 val versions = mapOf(
     "avroSerializer" to "7.7.5",
-    "testContainer" to "1.21.3",
+    "testContainer" to "1.21.4",
     "logstashVersion" to "7.4",
-    "avroSharedLibrary" to "1.0.2",
+    "avroSharedLibrary" to "1.0.3",
     "shardingJdbc" to "5.5.2",
     "mapStruct" to "1.6.3",
     "mapStructBinding" to "0.2.0",
@@ -15,7 +15,8 @@ val versions = mapOf(
     "jacksonBind" to "0.2.6",
     "springCloudStarterOpenfeign" to "4.1.1",
     "testContainerKeycloak" to "4.0.0",
-    "swaggerAnnotations" to "2.2.21"
+    "swaggerAnnotations" to "2.2.21",
+    "testContainerCore" to "2.0.3"
 )
 
 plugins {
@@ -116,6 +117,7 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.mockito:mockito-core")
 
+    testImplementation("org.testcontainers:testcontainers:${versions["testContainerCore"]}")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql:${versions["testContainer"]}")
     testImplementation("org.testcontainers:kafka:${versions["testContainer"]}")

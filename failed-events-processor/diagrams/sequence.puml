@@ -1,0 +1,47 @@
+@startuml
+actor KafkaBroker
+participant DLTConsumer as DLTC
+participant KafkaErrorHandler as KEH
+participant FailedEventHandler as FEH
+participant ErrorSerializer as ES
+participant FileNamingService as FNS
+participant StorageService as SS
+participant MinIO as MI
+
+KafkaBroker -> DLTC: Получение батча сообщений и передача на обработку
+
+alt Невалидное сообщение (ошибка десериализации)
+    DLTC -> KEH : Передача ошибки
+    KEH -> KafkaBroker : ACK сообщения (чтобы не блокировать consumer)
+    return
+else Валидное сообщение
+    DLTC -> FEH : Передача сообщения на обработку
+end
+
+FEH -> FNS: Запрос уникального имени файла
+FNS --> FEH: Уникальное имя
+FEH -> ES: Генерация JSON представления сообщения
+ES --> FEH: JSON
+FEH -> SS: Сохранение события в хранилище (уникальное имя + JSON)
+
+loop до 3 попыток
+    SS -> MI: Попытка сохранить объект
+
+    alt Сохранение успешно
+        MI --> SS: OK
+    else Ошибка сохранения
+        MI --> SS: Error
+    end
+end
+
+alt Успешно сохранено
+    SS --> FEH: OK
+    FEH --> DLTC: OK
+    DLTC --> KafkaBroker: ACK сообщения
+else Все 3 попытки неудачны
+    SS --> FEH: Error
+    FEH --> DLTC: Error
+    DLTC --> KafkaBroker: NO ACK\n(сообщение не подтверждено)
+end
+
+@enduml

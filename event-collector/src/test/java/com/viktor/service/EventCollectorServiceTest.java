@@ -2,6 +2,7 @@ package com.viktor.service;
 
 import com.viktor.avro.DeviceAvro;
 import com.viktor.avro.DeviceEventAvro;
+import com.viktor.kafka.KafkaDltProducer;
 import com.viktor.repository.EventCollectorRepository;
 import com.viktor.service.device_publication.DeviceIdPublicationService;
 import com.viktor.service.event_collector.EventCollectorServiceImpl;
@@ -30,11 +31,14 @@ public class EventCollectorServiceTest {
     @Mock
     private DeviceIdPublicationService deviceIdPublicationService;
 
+    @Mock
+    private KafkaDltProducer kafkaDltProducer;
+
     private EventCollectorServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new EventCollectorServiceImpl(repository, deviceIdPublicationService);
+        service = new EventCollectorServiceImpl(repository, deviceIdPublicationService,  kafkaDltProducer);
     }
 
     @Test

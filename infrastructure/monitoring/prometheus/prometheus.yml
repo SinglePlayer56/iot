@@ -94,6 +94,12 @@ scrape_configs:
     static_configs:
       - targets: [ 'device-collector:8201' ]
 
+  - job_name: failed-events-processor
+    scrape_interval: 10s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'failed-events-processor:8204' ]
+
   - job_name: device-service
     scrape_interval: 10s
     metrics_path: '/actuator/prometheus'

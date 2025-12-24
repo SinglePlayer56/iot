@@ -35,9 +35,13 @@ SECURITY ?= keycloak postgres_keycloak
 
 DEVICE_SERVICE ?= device-service redis $(DEVICES_DB_CLUSTER) $(KAFKA_SERVICES)
 
-DEVICE_SERVICE_MONITORING ?= $(DEVICE_SERVICE) $(MONITORING_SERVICES) redis-exporter kafka-exporter \
+DEVICE_SERVICE_MONITORING ?= $(MONITORING_SERVICES) redis-exporter kafka-exporter \
 							postgres-exporter-devices-shard-0-master postgres-exporter-devices-shard-1-master \
 	  						postgres-exporter-devices-shard-0-replica postgres-exporter-devices-shard-1-replica
+
+FAILED_EVENTS_PROCESSOR ?= failed-events-processor $(KAFKA_SERVICES) minio
+
+FAILED_EVENTS_PROCESSOR_MONITORING ?= kafka-exporter $(MONITORING_SERVICES)
 
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
@@ -239,3 +243,31 @@ device-service-monitoring-stop:
 
 device-service-monitoring-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(DEVICE_SERVICE) $(DEVICE_SERVICE_MONITORING)
+
+failed-events-processor-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(FAILED_EVENTS_PROCESSOR)
+
+failed-events-processor-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(FAILED_EVENTS_PROCESSOR) --build
+	@$(MAKE) docker-proxy-stop
+
+failed-events-processor-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(FAILED_EVENTS_PROCESSOR)
+
+failed-events-processor-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(FAILED_EVENTS_PROCESSOR)
+
+failed-events-processor-monitoring-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(FAILED_EVENTS_PROCESSOR) $(FAILED_EVENTS_PROCESSOR_MONITORING)
+
+failed-events-processor-monitoring-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(FAILED_EVENTS_PROCESSOR) $(FAILED_EVENTS_PROCESSOR_MONITORING) --build
+	@$(MAKE) docker-proxy-stop
+
+failed-events-processor-monitoring-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(FAILED_EVENTS_PROCESSOR) $(FAILED_EVENTS_PROCESSOR_MONITORING)
+
+failed-events-processor-monitoring-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(FAILED_EVENTS_PROCESSOR) $(FAILED_EVENTS_PROCESSOR_MONITORING)

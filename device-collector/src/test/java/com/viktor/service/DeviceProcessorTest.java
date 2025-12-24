@@ -1,6 +1,6 @@
 package com.viktor.service;
 
-import com.viktor.kafka.KafkaDeviceDltProducer;
+import com.viktor.kafka.KafkaDltProducer;
 import com.viktor.service.device.DeviceProcessor;
 import com.viktor.service.device.DeviceService;
 import com.viktor.utils.DeviceUtilData;
@@ -28,7 +28,7 @@ public class DeviceProcessorTest {
     DeviceService deviceService;
 
     @Mock
-    KafkaDeviceDltProducer kafkaDeviceDltProducer;
+    KafkaDltProducer kafkaDltProducer;
 
     @InjectMocks
     DeviceProcessor deviceProcessor;
@@ -44,7 +44,7 @@ public class DeviceProcessorTest {
                 .verifyComplete();
 
         BDDMockito.then(deviceService).should(times(1)).saveDevice(device);
-        BDDMockito.then(kafkaDeviceDltProducer).shouldHaveNoInteractions();
+        BDDMockito.then(kafkaDltProducer).shouldHaveNoInteractions();
     }
 
     @Test
@@ -55,7 +55,7 @@ public class DeviceProcessorTest {
         BDDMockito.given(deviceService.saveDevice(device))
                 .willReturn(Mono.error(new RuntimeException("db error")));
 
-        BDDMockito.given(kafkaDeviceDltProducer.publishToDlt(eq(device), any()))
+        BDDMockito.given(kafkaDltProducer.publishToDlt(eq(device), any()))
                 .willReturn(Mono.empty());
 
         StepVerifier.create(deviceProcessor.processDevices(java.util.List.of(device)))
@@ -63,7 +63,7 @@ public class DeviceProcessorTest {
 
         BDDMockito.then(deviceService).should(atLeastOnce()).saveDevice(device);
 
-        BDDMockito.then(kafkaDeviceDltProducer).should(times(1))
+        BDDMockito.then(kafkaDltProducer).should(times(1))
                 .publishToDlt(eq(device), any(Throwable.class));
     }
 
@@ -78,7 +78,7 @@ public class DeviceProcessorTest {
                 .verifyComplete();
 
         BDDMockito.then(deviceService).should(times(1)).deleteDevice(device.getDeviceId());
-        BDDMockito.then(kafkaDeviceDltProducer).shouldHaveNoInteractions();
+        BDDMockito.then(kafkaDltProducer).shouldHaveNoInteractions();
     }
 
     @Test
@@ -89,7 +89,7 @@ public class DeviceProcessorTest {
         BDDMockito.given(deviceService.deleteDevice(device.getDeviceId()))
                 .willReturn(Mono.error(new RuntimeException("db error")));
 
-        BDDMockito.given(kafkaDeviceDltProducer.publishToDlt(eq(device), any()))
+        BDDMockito.given(kafkaDltProducer.publishToDlt(eq(device), any()))
                 .willReturn(Mono.empty());
 
         StepVerifier.create(deviceProcessor.deleteDevices(List.of(device)))
@@ -97,7 +97,7 @@ public class DeviceProcessorTest {
 
         BDDMockito.then(deviceService).should(atLeastOnce()).deleteDevice(device.getDeviceId());
 
-        BDDMockito.then(kafkaDeviceDltProducer).should(times(1))
+        BDDMockito.then(kafkaDltProducer).should(times(1))
                 .publishToDlt(eq(device), any(Throwable.class));
     }
 }

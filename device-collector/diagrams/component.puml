@@ -10,7 +10,7 @@ Container_Boundary(device_collector_service, "Device Collector Service") {
     Component(configs, "Configs", "Конфигурации")
     Component(aspects, "Aspects", "Аспекты")
     Component(exceptions, "Exceptions", "Кастомные ексепшены")
-    Component(kafka_device_dlt_producer, "Kafka Device DLT Producer", "Публикация сообщения в devices.DLT при неудачной обработке")
+    Component(kafka_device_dlt_producer, "Kafka Device DLT Producer", "Публикация сообщения в dlt-topic при неудачной обработке")
     Component(kafka_error_handler, "Kafka Error Handler", "Error Handler", "Обработка сообщения неверной схемы, сдвигает offset")
 
     Rel(aspects, metrics_service, "Обновление счетчиков метрик")
@@ -18,17 +18,17 @@ Container_Boundary(device_collector_service, "Device Collector Service") {
     Rel(kafka_device_consumer, device_processor, "Передача десериализованного батча устройств на обработку")
     Rel(kafka_device_consumer, kafka_error_handler, "Проброс сообщения с невалидной схемой")
     Rel(device_processor, device_service, "Вызов сохранения каждого устройства с retry/backoff")
-    Rel(device_processor, kafka_device_dlt_producer, "Передача сообщения на публикацию в DLT после исчерпания попыток")
+    Rel(device_processor, kafka_device_dlt_producer, "Передача сообщения на публикацию в dlt-topic после исчерпания попыток")
 }
 
 ContainerDb(device_collector_data, "Device DB Cluster", "PostgreSQL (ShardingSphere JDBC)", "Шардированное хранилище данных об устройствах")
-ContainerQueue(kafka, "Kafka Cluster", "Kafka", "devices.DLT / devices / devices-delete топики")
+ContainerQueue(kafka, "Kafka Cluster", "Kafka", "dlt-topic / devices / devices-delete топики")
 Container(schema_registry, "Schema Registry", "Confluent SR", "Хранение схем")
 
 Rel(kafka_device_consumer, schema_registry, "Запрашивает схему для десериализации")
-Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для сериализации")
+Rel(kafka_device_dlt_producer, schema_registry, "Запрашивает схему для десериализации")
 Rel(kafka_device_consumer, kafka, "Вычитывание сообщений из топика devices/devices-delete")
-Rel(kafka_device_dlt_producer, kafka, "Публикации сообщений в DLT при неудачной обработке")
+Rel(kafka_device_dlt_producer, kafka, "Публикации сообщений в dlt-topic при неудачной обработке")
 Rel(device_repo,device_collector_data, "Сохранение/обновление устройств", "ShardingSphere JDBC")
 
 @enduml

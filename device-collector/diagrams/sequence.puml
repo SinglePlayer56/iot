@@ -10,6 +10,7 @@ participant "Shard N" as S
 participant "Kafka Device DLT Producer" as DLT
 participant "Metrics Service" as MS
 
+KafkaBroker -> KDC: Читаем сообщение из топиков devices/devices-delete
 KDC -> DP : Получение батча сообщений и передача на обработку
 
 alt Невалидное сообщение (ошибка десериализации)
@@ -44,8 +45,8 @@ group Топик devices save/update device
 
     alt Все попытки неудачны
         DP -> DLT : Передача устройства на публикацию
-        DLT -> KafkaBroker : Отправка в devices.DLT топик
-        KafkaBroker --> DLT : ACK devices.DLT
+        DLT -> KafkaBroker : Отправка в dlt-topic топик
+        KafkaBroker --> DLT : ACK dlt-topic
         DP -> MS : Инкремент метрики ошибок (через аспект)
         DP --> KDC : Завершение с обработкой ошибки
         KDC -> KafkaBroker : ACK топика devices
@@ -76,8 +77,8 @@ group Топик devices-delete delete device
 
     alt Все попытки неудачны
         DP -> DLT : Передача устройства на публикацию
-        DLT -> KafkaBroker : Отправка в devices.DLT топик
-        KafkaBroker --> DLT : ACK devices.DLT
+        DLT -> KafkaBroker : Отправка в dlt-topic топик
+        KafkaBroker --> DLT : ACK dlt-topic
         DP -> MS : Инкремент метрики ошибок (через аспект)
         DP --> KDC : Завершение с обработкой ошибки
         KDC -> KafkaBroker : ACK топика devices-delete
