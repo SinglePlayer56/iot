@@ -8,6 +8,7 @@ participant "CommandService" as CS
 participant "RouterService" as RS
 participant "CommandRepository" as CR
 participant "RouterRepository" as RR
+participant "CommandExpirationWorker" as W
 database "DB" as DB
 
 == gRPC /api/v1/send-command (от оркестратора) ==
@@ -62,5 +63,20 @@ CR -> DB : UPDATE commands SET status=ACKED, acked_at=now()
 DB --> CR : OK
 CR --> CS : OK
 CS --> GRPC : OK
+
+== Обработка просроченных команд ==
+
+W -> CS : expireOldCommands()
+CS -> CR : findExpiredCommands(now - ttl)
+
+CR -> DB : SELECT id FROM commands\nWHERE status = 'SENT'\nAND sent_at < threshold
+DB --> CR : command_ids
+CR --> CS : command_ids
+
+CS -> CR : updateStatus(command_ids, FAILED)
+CR -> DB : UPDATE commands\nSET status = 'FAILED'\nWHERE id IN (command_ids)
+DB --> CR : OK
+CR --> CS : OK
+CS --> W : OK
 
 @enduml

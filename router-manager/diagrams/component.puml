@@ -10,6 +10,8 @@ System_Boundary(router_manager_service, "router-manager") {
   Component(command_service, "CommandService", "Go", "Бизнес логика работы с командами")
   Component(router_service, "RouterService", "Go", "Бизнес логика работы с роутерами")
 
+  Component(expiration_worker, "CommandExpirationWorker", "Go", "Фоновый процесс для поиска и пометки протухших команд")
+
   Component(command_repository, "CommandRepository", "pgx", "CRUD операции с командами")
   Component(router_repository, "RouterRepository", "pgx", "CRUD операции с роутерами")
 
@@ -22,8 +24,10 @@ System_Boundary(router_manager_service, "router-manager") {
   Rel(grpc_controller, command_service, "calls", "send/poll/ack")
   Rel(grpc_controller, router_service, "calls", "register/heartbeat + last_seen")
 
-  Rel(command_service, command_repository, "uses")
-  Rel(router_service, router_repository, "uses")
+  Rel(expiration_worker, command_service, "expireOldCommands")
+
+  Rel(command_service, command_repository, "CRUD операции")
+  Rel(router_service, router_repository, "CRUD операции")
 
   Rel(config_loader, grpc_controller, "config")
   Rel(log, grpc_controller, "logs")
