@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/google/uuid v1.6.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
