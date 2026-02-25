@@ -1,5 +1,7 @@
 grpc:
   port: 44044
   timeout: 5s
+database:
+  url: postgres://postgres:postgres@localhost:5432/router_manager?sslmode=disable
 
 migrations_path: "./migrations"

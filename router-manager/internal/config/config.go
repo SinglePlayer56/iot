@@ -9,8 +9,13 @@ import (
 )
 
 type Config struct {
-	GRPC          GRPCConfig `yaml:"grpc"`
-	MigrationPath string     `yaml:"migrations_path"`
+	GRPC          GRPCConfig     `yaml:"grpc"`
+	MigrationPath string         `yaml:"migrations_path"`
+	Database      DatabaseConfig `yaml:"database"`
+}
+
+type DatabaseConfig struct {
+	Url string `yaml:"url"`
 }
 
 type GRPCConfig struct {
