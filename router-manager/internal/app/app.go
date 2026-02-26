@@ -4,6 +4,9 @@ import (
 	"context"
 	"log/slog"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	trmmanager "github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+
 	dbapp "router-manager/internal/app/db"
 	grpcapp "router-manager/internal/app/grpc"
 	commandrepository "router-manager/internal/repository/command"
@@ -26,13 +29,17 @@ func New(
 	db := dbapp.New(log, dbUrl)
 	dbPool := db.MustStart(ctx)
 
-	commandRepo := commandrepository.New(dbPool)
+	ctxGetter := trmpgx.DefaultCtxGetter
+
+	commandRepo := commandrepository.New(dbPool, ctxGetter)
 	commandService := commandservice.New(log, commandRepo)
 
-	routerRepo := routerrepository.New(dbPool)
+	routerRepo := routerrepository.New(dbPool, ctxGetter)
 	routerService := routerservice.New(log, routerRepo)
 
-	grpcApp := grpcapp.New(log, grpcPort, commandService, routerService)
+	transactionManager := trmmanager.Must(trmpgx.NewDefaultFactory(dbPool))
+
+	grpcApp := grpcapp.New(log, grpcPort, transactionManager, commandService, routerService)
 
 	return &App{
 		GRPCServer: grpcApp,

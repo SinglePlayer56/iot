@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/avito-tech/go-transaction-manager/trm/v2"
+
 	routermanagergrpc "router-manager/internal/grpc"
 	commandservice "router-manager/internal/services/command"
 	routerservice "router-manager/internal/services/router"
@@ -21,12 +23,13 @@ type App struct {
 func New(
 	log *slog.Logger,
 	port int,
+	txManager trm.Manager,
 	commandService *commandservice.CommandService,
 	routerService *routerservice.RouterService,
 ) *App {
 	grpcServer := grpc.NewServer()
 
-	routermanagergrpc.Register(grpcServer, commandService, routerService)
+	routermanagergrpc.Register(grpcServer, txManager, commandService, routerService)
 
 	return &App{
 		log:        log,

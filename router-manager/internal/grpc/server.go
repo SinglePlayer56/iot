@@ -3,9 +3,12 @@ package grpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"router-manager/internal/domain/models"
 	apiv1 "router-manager/internal/gen/proto/api/v1"
 	"time"
+
+	"github.com/avito-tech/go-transaction-manager/trm/v2"
 
 	commandservice "router-manager/internal/services/command"
 	routerservice "router-manager/internal/services/router"
@@ -19,18 +22,21 @@ import (
 
 type serverApi struct {
 	apiv1.UnimplementedRouterManagerServer
+	txManager      trm.Manager
 	commandService *commandservice.CommandService
 	routerService  *routerservice.RouterService
 }
 
 func Register(
 	gRPC *grpc.Server,
+	txManager trm.Manager,
 	commandService *commandservice.CommandService,
 	routerService *routerservice.RouterService,
 ) {
 	apiv1.RegisterRouterManagerServer(
 		gRPC,
 		&serverApi{
+			txManager:      txManager,
 			commandService: commandService,
 			routerService:  routerService,
 		},
@@ -61,14 +67,15 @@ func (s *serverApi) SendCommand(
 			return nil, err
 		}
 	} else {
-		routerIDs, err := s.routerService.GetAllRoutersId(ctx)
-		if err != nil {
-			return nil, err
-		}
+		err = s.withTx(ctx, func(txCtx context.Context) error {
+			routerIDs, err := s.routerService.GetAllRoutersId(txCtx)
+			if err != nil {
+				return err
+			}
 
-		commands := buildPendingCommands(routerIDs, commandType, payload, createdAt)
-
-		err = s.commandService.SaveCommandsBatch(ctx, commands)
+			commands := buildPendingCommands(routerIDs, commandType, payload, createdAt)
+			return s.commandService.SaveCommandsBatch(txCtx, commands)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -86,27 +93,35 @@ func (s *serverApi) Poll(
 		return nil, err
 	}
 
-	if err := s.updateRouterLastSeen(ctx, routerID); err != nil {
-		return nil, err
-	}
+	var protoCommands []*apiv1.Command
+	err = s.withTx(ctx, func(txCtx context.Context) error {
+		if err := s.routerService.UpdateLastSeen(txCtx, routerID); err != nil {
+			return err
+		}
 
-	commands, err := s.commandService.GetCommands(ctx, routerID)
+		commands, err := s.commandService.GetCommands(txCtx, routerID)
+		if err != nil {
+			return err
+		}
+
+		commandIDs := collectCommandIDs(commands)
+		if err := s.commandService.SetSendCommandsBatch(txCtx, routerID, commandIDs); err != nil {
+			return err
+		}
+
+		protoCommands = make([]*apiv1.Command, 0, len(commands))
+		for _, command := range commands {
+			protoCommand, err := toProtoCommand(command)
+			if err != nil {
+				return err
+			}
+			protoCommands = append(protoCommands, protoCommand)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
-	}
-
-	commandIDs := collectCommandIDs(commands)
-	if err := s.commandService.SetSendCommandsBatch(ctx, routerID, commandIDs); err != nil {
-		return nil, err
-	}
-
-	protoCommands := make([]*apiv1.Command, 0, len(commands))
-	for _, command := range commands {
-		protoCommand, err := toProtoCommand(command)
-		if err != nil {
-			return nil, err
-		}
-		protoCommands = append(protoCommands, protoCommand)
 	}
 
 	return &apiv1.PollResponse{
@@ -127,11 +142,13 @@ func (s *serverApi) Ack(
 		return nil, err
 	}
 
-	if err := s.updateRouterLastSeen(ctx, routerID); err != nil {
-		return nil, err
-	}
+	err = s.withTx(ctx, func(txCtx context.Context) error {
+		if err := s.routerService.UpdateLastSeen(txCtx, routerID); err != nil {
+			return err
+		}
 
-	err = s.commandService.SetAckCommand(ctx, routerID, commandID)
+		return s.commandService.SetAckCommand(txCtx, routerID, commandID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +156,12 @@ func (s *serverApi) Ack(
 	return &emptypb.Empty{}, nil
 }
 
-func (s *serverApi) updateRouterLastSeen(ctx context.Context, routerID uuid.UUID) error {
-	return s.routerService.UpdateLastSeen(ctx, routerID)
+func (s *serverApi) withTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	if s.txManager == nil {
+		return errors.New("tx manager is nil")
+	}
+
+	return s.txManager.Do(ctx, fn)
 }
 
 func newPendingCommand(

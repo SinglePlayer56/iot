@@ -5,26 +5,29 @@ import (
 	"fmt"
 	"router-manager/internal/domain/models"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type Storage interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
-	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
-}
-
 type Repository struct {
-	storage Storage
+	db        trmpgx.Tr
+	ctxGetter *trmpgx.CtxGetter
 }
 
-func New(storage Storage) *Repository {
+func New(db trmpgx.Tr, ctxGetter *trmpgx.CtxGetter) *Repository {
 	return &Repository{
-		storage: storage,
+		db:        db,
+		ctxGetter: ctxGetter,
 	}
+}
+
+func (r *Repository) conn(ctx context.Context) trmpgx.Tr {
+	if r.ctxGetter == nil {
+		return r.db
+	}
+
+	return r.ctxGetter.DefaultTrOrDB(ctx, r.db)
 }
 
 func (r *Repository) SaveCommand(ctx context.Context, command models.Command) (*models.Command, error) {
@@ -74,7 +77,7 @@ func (r *Repository) SaveCommand(ctx context.Context, command models.Command) (*
 
 	var saved models.Command
 
-	err := r.storage.
+	err := r.conn(ctx).
 		QueryRow(ctx, query, args).
 		Scan(
 			&saved.ID,
@@ -114,7 +117,7 @@ func (r *Repository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]mod
 		"sentStatus":    models.SENT,
 	}
 
-	rows, err := r.storage.Query(ctx, query, args)
+	rows, err := r.conn(ctx).Query(ctx, query, args)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +170,7 @@ func (r *Repository) SetSentCommandsBatch(ctx context.Context, routerId uuid.UUI
 		"pendingStatus": models.PENDING,
 	}
 
-	if _, err := r.storage.Exec(ctx, query, args); err != nil {
+	if _, err := r.conn(ctx).Exec(ctx, query, args); err != nil {
 		return err
 	}
 
@@ -189,7 +192,7 @@ func (r *Repository) AckCommand(ctx context.Context, routerId uuid.UUID, command
 		"status":        models.ACKED,
 		"currentStatus": models.SENT,
 	}
-	tag, err := r.storage.Exec(ctx, query, args)
+	tag, err := r.conn(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return err
 	}
@@ -235,7 +238,7 @@ func (r *Repository) SaveCommandsBatch(ctx context.Context, commands []models.Co
 		}, nil
 	})
 
-	_, err := r.storage.CopyFrom(ctx, table, cols, src)
+	_, err := r.conn(ctx).CopyFrom(ctx, table, cols, src)
 	if err != nil {
 		return err
 	}

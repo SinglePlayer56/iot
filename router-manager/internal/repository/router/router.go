@@ -6,30 +6,34 @@ import (
 	"fmt"
 	"router-manager/internal/domain/models"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type Storage interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
-}
-
 type Repository struct {
-	storage Storage
+	db        trmpgx.Tr
+	ctxGetter *trmpgx.CtxGetter
 }
 
-func New(storage Storage) *Repository {
+func New(db trmpgx.Tr, ctxGetter *trmpgx.CtxGetter) *Repository {
 	return &Repository{
-		storage: storage,
+		db:        db,
+		ctxGetter: ctxGetter,
 	}
+}
+
+func (r *Repository) conn(ctx context.Context) trmpgx.Tr {
+	if r.ctxGetter == nil {
+		return r.db
+	}
+
+	return r.ctxGetter.DefaultTrOrDB(ctx, r.db)
 }
 
 func (r *Repository) GetAllRoutersId(ctx context.Context) ([]uuid.UUID, error) {
 	query := `SELECT id FROM routers`
-	rows, err := r.storage.Query(ctx, query)
+	rows, err := r.conn(ctx).Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +63,7 @@ func (r *Repository) FindById(ctx context.Context, id uuid.UUID) (*models.Router
 
 	var router models.Router
 
-	err := r.storage.QueryRow(ctx, query, args).
+	err := r.conn(ctx).QueryRow(ctx, query, args).
 		Scan(
 			&router.ID,
 			&router.SerialNumber,
@@ -82,7 +86,7 @@ func (r *Repository) UpdateLastSeen(ctx context.Context, id uuid.UUID) error {
 		"id": id,
 	}
 
-	tag, err := r.storage.Exec(ctx, query, args)
+	tag, err := r.conn(ctx).Exec(ctx, query, args)
 	if err != nil {
 		return err
 	}
