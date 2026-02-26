@@ -32,6 +32,8 @@ func New(logger *slog.Logger, commandRepository CommandRepository) *CommandServi
 }
 
 func (s *CommandService) SaveCommand(ctx context.Context, command models.Command) (*models.Command, error) {
+	s.log.Info("SaveCommand", slog.String("command_type", string(command.CommandType)))
+
 	if s.commandRepository == nil {
 		return nil, errors.New("command repository is nil")
 	}
@@ -48,10 +50,19 @@ func (s *CommandService) SaveCommand(ctx context.Context, command models.Command
 		command.Status = models.PENDING
 	}
 
-	return s.commandRepository.SaveCommand(ctx, command)
+	saved, err := s.commandRepository.SaveCommand(ctx, command)
+	if err != nil {
+		s.log.Error("SaveCommand failed", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.log.Info("SaveCommand ok", slog.String("command_id", saved.ID.String()))
+	return saved, nil
 }
 
 func (s *CommandService) GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error) {
+	s.log.Info("GetCommands", slog.String("router_id", routerId.String()))
+
 	if s.commandRepository == nil {
 		return nil, errors.New("command repository is nil")
 	}
@@ -60,10 +71,19 @@ func (s *CommandService) GetCommands(ctx context.Context, routerId uuid.UUID) ([
 		return nil, errors.New("routerId is required")
 	}
 
-	return s.commandRepository.GetCommands(ctx, routerId)
+	commands, err := s.commandRepository.GetCommands(ctx, routerId)
+	if err != nil {
+		s.log.Error("GetCommands failed", slog.String("router_id", routerId.String()), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.log.Info("GetCommands ok", slog.String("router_id", routerId.String()), slog.Int("count", len(commands)))
+	return commands, nil
 }
 
 func (s *CommandService) SetSendCommandsBatch(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error {
+	s.log.Info("SetSendCommandsBatch", slog.String("router_id", routerId.String()), slog.Int("count", len(commandIds)))
+
 	if s.commandRepository == nil {
 		return errors.New("command repository is nil")
 	}
@@ -78,10 +98,17 @@ func (s *CommandService) SetSendCommandsBatch(ctx context.Context, routerId uuid
 		}
 	}
 
-	return s.commandRepository.SetSentCommandsBatch(ctx, routerId, commandIds)
+	if err := s.commandRepository.SetSentCommandsBatch(ctx, routerId, commandIds); err != nil {
+		s.log.Error("SetSendCommandsBatch failed", slog.String("router_id", routerId.String()), slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
 }
 
 func (s *CommandService) SetAckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error {
+	s.log.Info("SetAckCommand", slog.String("router_id", routerId.String()), slog.String("command_id", commandId.String()))
+
 	if s.commandRepository == nil {
 		return errors.New("command repository is nil")
 	}
@@ -94,18 +121,33 @@ func (s *CommandService) SetAckCommand(ctx context.Context, routerId uuid.UUID, 
 		return errors.New("commandId is required")
 	}
 
-	return s.commandRepository.AckCommand(ctx, routerId, commandId)
+	if err := s.commandRepository.AckCommand(ctx, routerId, commandId); err != nil {
+		s.log.Error("SetAckCommand failed", slog.String("router_id", routerId.String()), slog.String("command_id", commandId.String()), slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
 }
 
 func (s *CommandService) SaveCommandsBatch(ctx context.Context, commands []models.Command) error {
+	s.log.Info("SaveCommandsBatch", slog.Int("count", len(commands)))
+
 	if s.commandRepository == nil {
 		return errors.New("command repository is nil")
 	}
 
-	return s.commandRepository.SaveCommandsBatch(ctx, commands)
+	if err := s.commandRepository.SaveCommandsBatch(ctx, commands); err != nil {
+		s.log.Error("SaveCommandsBatch failed", slog.String("error", err.Error()))
+		return err
+	}
+
+	s.log.Info("SaveCommandsBatch ok", slog.Int("count", len(commands)))
+	return nil
 }
 
 func (s *CommandService) ExpireOldCommands(ctx context.Context, ttl time.Duration) (int, error) {
+	s.log.Info("ExpireOldCommands", slog.Duration("ttl", ttl))
+
 	if s.commandRepository == nil {
 		return 0, errors.New("command repository is nil")
 	}
@@ -115,5 +157,12 @@ func (s *CommandService) ExpireOldCommands(ctx context.Context, ttl time.Duratio
 	}
 
 	threshold := time.Now().Add(-ttl)
-	return s.commandRepository.ExpireSentCommandsBefore(ctx, threshold)
+	count, err := s.commandRepository.ExpireSentCommandsBefore(ctx, threshold)
+	if err != nil {
+		s.log.Error("ExpireOldCommands failed", slog.String("error", err.Error()))
+		return 0, err
+	}
+
+	s.log.Info("ExpireOldCommands ok", slog.Int("expired", count))
+	return count, nil
 }

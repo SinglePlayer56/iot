@@ -28,24 +28,49 @@ func New(log *slog.Logger, routerRepository RouterRepository) *RouterService {
 }
 
 func (s *RouterService) GetAllRoutersId(ctx context.Context) ([]uuid.UUID, error) {
+	s.log.Info("GetAllRoutersId")
+
 	if s.routerRepository == nil {
 		return nil, errors.New("router repository is nil")
 	}
 
-	return s.routerRepository.GetAllRoutersId(ctx)
+	ids, err := s.routerRepository.GetAllRoutersId(ctx)
+	if err != nil {
+		s.log.Error("GetAllRoutersId failed", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.log.Info("GetAllRoutersId ok", slog.Int("count", len(ids)))
+	return ids, nil
 }
 
 func (s *RouterService) FindById(ctx context.Context, id uuid.UUID) (*models.Router, error) {
+	s.log.Info("FindById", slog.String("router_id", id.String()))
+
 	if s.routerRepository == nil {
 		return nil, errors.New("router repository is nil")
 	}
 
-	return s.routerRepository.FindById(ctx, id)
+	router, err := s.routerRepository.FindById(ctx, id)
+	if err != nil {
+		s.log.Error("FindById failed", slog.String("router_id", id.String()), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return router, nil
 }
 
 func (s *RouterService) UpdateLastSeen(ctx context.Context, id uuid.UUID) error {
+	s.log.Info("UpdateLastSeen", slog.String("router_id", id.String()))
+
 	if s.routerRepository == nil {
 		return errors.New("router repository is nil")
 	}
-	return s.routerRepository.UpdateLastSeen(ctx, id)
+
+	if err := s.routerRepository.UpdateLastSeen(ctx, id); err != nil {
+		s.log.Error("UpdateLastSeen failed", slog.String("router_id", id.String()), slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
 }
