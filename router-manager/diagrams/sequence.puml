@@ -67,14 +67,8 @@ CS --> GRPC : OK
 == Обработка просроченных команд ==
 
 W -> CS : expireOldCommands()
-CS -> CR : findExpiredCommands(now - ttl)
-
-CR -> DB : SELECT id FROM commands\nWHERE status = 'SENT'\nAND sent_at < threshold
-DB --> CR : command_ids
-CR --> CS : command_ids
-
-CS -> CR : updateStatus(command_ids, FAILED)
-CR -> DB : UPDATE commands\nSET status = 'FAILED'\nWHERE id IN (command_ids)
+CS -> CR : expireSentCommandsBefore(now - ttl)
+CR -> DB : UPDATE commands\nSET status = 'FAILED'\nWHERE status = 'SENT'\nAND sent_at < threshold
 DB --> CR : OK
 CR --> CS : OK
 CS --> W : OK

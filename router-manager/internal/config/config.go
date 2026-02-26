@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	GRPC          GRPCConfig     `yaml:"grpc"`
+	Commands      CommandsConfig `yaml:"commands"`
 	MigrationPath string         `yaml:"migrations_path"`
 	Database      DatabaseConfig `yaml:"database"`
 }
@@ -21,6 +22,10 @@ type DatabaseConfig struct {
 type GRPCConfig struct {
 	Port    int           `yaml:"port"`
 	Timeout time.Duration `yaml:"timeout"`
+}
+
+type CommandsConfig struct {
+	TTL time.Duration `yaml:"ttl"`
 }
 
 func MustLoad() *Config {

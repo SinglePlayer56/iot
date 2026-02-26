@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"router-manager/internal/domain/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -20,6 +21,7 @@ type CommandRepository interface {
 	SetSentCommandsBatch(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error
 	AckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error
 	SaveCommandsBatch(ctx context.Context, commands []models.Command) error
+	ExpireSentCommandsBefore(ctx context.Context, threshold time.Time) (int, error)
 }
 
 func New(logger *slog.Logger, commandRepository CommandRepository) *CommandService {
@@ -101,4 +103,17 @@ func (s *CommandService) SaveCommandsBatch(ctx context.Context, commands []model
 	}
 
 	return s.commandRepository.SaveCommandsBatch(ctx, commands)
+}
+
+func (s *CommandService) ExpireOldCommands(ctx context.Context, ttl time.Duration) (int, error) {
+	if s.commandRepository == nil {
+		return 0, errors.New("command repository is nil")
+	}
+
+	if ttl <= 0 {
+		return 0, errors.New("ttl must be positive")
+	}
+
+	threshold := time.Now().Add(-ttl)
+	return s.commandRepository.ExpireSentCommandsBefore(ctx, threshold)
 }

@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	trmmanager "github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 
+	commandexpirationworker "router-manager/internal/app/commandexpiration"
 	dbapp "router-manager/internal/app/db"
 	grpcapp "router-manager/internal/app/grpc"
 	commandrepository "router-manager/internal/repository/command"
@@ -16,8 +18,9 @@ import (
 )
 
 type App struct {
-	GRPCServer *grpcapp.App
-	DB         *dbapp.App
+	GRPCServer              *grpcapp.App
+	CommandExpirationWorker *commandexpirationworker.App
+	DB                      *dbapp.App
 }
 
 func New(
@@ -25,6 +28,7 @@ func New(
 	log *slog.Logger,
 	grpcPort int,
 	dbUrl string,
+	commandTTL time.Duration,
 ) *App {
 	db := dbapp.New(log, dbUrl)
 	dbPool := db.MustStart(ctx)
@@ -40,9 +44,11 @@ func New(
 	transactionManager := trmmanager.Must(trmpgx.NewDefaultFactory(dbPool))
 
 	grpcApp := grpcapp.New(log, grpcPort, transactionManager, commandService, routerService)
+	commandExpirationWorker := commandexpirationworker.New(ctx, log, transactionManager, commandService, commandTTL)
 
 	return &App{
-		GRPCServer: grpcApp,
-		DB:         db,
+		GRPCServer:              grpcApp,
+		CommandExpirationWorker: commandExpirationWorker,
+		DB:                      db,
 	}
 }

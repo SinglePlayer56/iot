@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"router-manager/internal/domain/models"
+	"time"
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/google/uuid"
@@ -244,4 +245,28 @@ func (r *Repository) SaveCommandsBatch(ctx context.Context, commands []models.Co
 	}
 
 	return nil
+}
+
+func (r *Repository) ExpireSentCommandsBefore(ctx context.Context, threshold time.Time) (int, error) {
+	query := `
+		UPDATE commands
+		SET status = @failedStatus
+		WHERE
+			status = @sentStatus
+			AND sent_at IS NOT NULL
+			AND sent_at < @threshold
+	`
+
+	args := pgx.NamedArgs{
+		"failedStatus": models.FAILED,
+		"sentStatus":   models.SENT,
+		"threshold":    threshold,
+	}
+
+	tag, err := r.conn(ctx).Exec(ctx, query, args)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(tag.RowsAffected()), nil
 }

@@ -27,14 +27,16 @@ func main() {
 
 	log.Info("Migrations applied")
 
-	application := app.New(ctx, log, cfg.GRPC.Port, cfg.Database.Url)
+	application := app.New(ctx, log, cfg.GRPC.Port, cfg.Database.Url, cfg.Commands.TTL)
 
 	go application.GRPCServer.MustRun()
+	go application.CommandExpirationWorker.MustRun()
 
 	<-ctx.Done()
 	log.Info("Stopping application", slog.String("reason", "shutdown signal"))
 
 	application.GRPCServer.Stop()
+	application.CommandExpirationWorker.Stop()
 	application.DB.Stop()
 
 	log.Info("Application stopped")
