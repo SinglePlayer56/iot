@@ -6,6 +6,8 @@ import (
 	"net"
 
 	routermanagergrpc "router-manager/internal/grpc"
+	commandservice "router-manager/internal/services/command"
+	routerservice "router-manager/internal/services/router"
 
 	"google.golang.org/grpc"
 )
@@ -19,10 +21,12 @@ type App struct {
 func New(
 	log *slog.Logger,
 	port int,
+	commandService *commandservice.CommandService,
+	routerService *routerservice.RouterService,
 ) *App {
 	grpcServer := grpc.NewServer()
 
-	routermanagergrpc.Register(grpcServer)
+	routermanagergrpc.Register(grpcServer, commandService, routerService)
 
 	return &App{
 		log:        log,

@@ -27,7 +27,7 @@ func main() {
 
 	log.Info("Migrations applied")
 
-	application := app.New(log, cfg.GRPC.Port, cfg.Database.Url)
+	application := app.New(ctx, log, cfg.GRPC.Port, cfg.Database.Url)
 
 	go application.GRPCServer.MustRun()
 

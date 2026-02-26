@@ -22,29 +22,31 @@ func New(log *slog.Logger, dbURL string) *App {
 	}
 }
 
-func (a *App) MustStart(ctx context.Context) {
-	if err := a.Start(ctx); err != nil {
+func (a *App) MustStart(ctx context.Context) *pgxpool.Pool {
+	pool, err := a.Start(ctx)
+	if err != nil {
 		panic(err)
 	}
+	return pool
 }
 
-func (a *App) Start(ctx context.Context) error {
+func (a *App) Start(ctx context.Context) (*pgxpool.Pool, error) {
 	if a.pool != nil {
-		return nil
+		return nil, nil
 	}
 
 	if a.dbURL == "" {
-		return fmt.Errorf("postgres db url is empty")
+		return nil, fmt.Errorf("postgres db url is empty")
 	}
 
 	dbPool, err := pgxpool.New(ctx, a.dbURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := dbPool.Ping(ctx); err != nil {
 		dbPool.Close()
-		return err
+		return nil, err
 	}
 
 	a.pool = dbPool
@@ -53,11 +55,7 @@ func (a *App) Start(ctx context.Context) error {
 		a.log.Info("postgres pool started")
 	}
 
-	return nil
-}
-
-func (a *App) Pool() *pgxpool.Pool {
-	return a.pool
+	return dbPool, nil
 }
 
 func (a *App) Stop() {
