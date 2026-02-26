@@ -52,7 +52,7 @@ func (r *Repository) GetAllRoutersId(ctx context.Context) ([]uuid.UUID, error) {
 }
 
 func (r *Repository) FindById(ctx context.Context, id uuid.UUID) (*models.Router, error) {
-	query := `SELECT id, serial_number, last_seen_at FROM routers WHERE id = @id`
+	query := `SELECT id, serial_number, last_seen_at, created_at FROM routers WHERE id = @id`
 	args := pgx.NamedArgs{
 		"id": id,
 	}
@@ -64,6 +64,7 @@ func (r *Repository) FindById(ctx context.Context, id uuid.UUID) (*models.Router
 			&router.ID,
 			&router.SerialNumber,
 			&router.LastSeenAt,
+			&router.CreatedAt,
 		)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

@@ -154,44 +154,52 @@ func (r *Repository) SetSentCommandsBatch(ctx context.Context, routerId uuid.UUI
 	query := `
 		UPDATE commands
 		SET sent_at = NOW(), status = @status
-		WHERE router_id = @routerId AND id = ANY(@commandIds::uuid[])
+		WHERE
+			router_id = @routerId
+			AND id = ANY(@commandIds::uuid[])
+			AND status = @pendingStatus
 	`
 
 	args := pgx.NamedArgs{
-		"routerId":   routerId,
-		"commandIds": commandIds,
-		"status":     models.SENT,
+		"routerId":      routerId,
+		"commandIds":    commandIds,
+		"status":        models.SENT,
+		"pendingStatus": models.PENDING,
 	}
 
-	tag, err := r.storage.Exec(ctx, query, args)
-	if err != nil {
+	if _, err := r.storage.Exec(ctx, query, args); err != nil {
 		return err
-	}
-	if tag.RowsAffected() != int64(len(commandIds)) {
-		return fmt.Errorf(
-			"updated %d commands for router %s, expected %d",
-			tag.RowsAffected(),
-			routerId,
-			len(commandIds),
-		)
 	}
 
 	return nil
 }
 
 func (r *Repository) AckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error {
-	query := `UPDATE commands SET acked_at = NOW(), status = @status WHERE id = @id and router_id = @routerId`
+	query := `
+		UPDATE commands
+		SET acked_at = NOW(), status = @status
+		WHERE
+			id = @id
+			AND router_id = @routerId
+			AND status = @currentStatus
+	`
 	args := pgx.NamedArgs{
-		"id":       commandId,
-		"routerId": routerId,
-		"status":   models.ACKED,
+		"id":            commandId,
+		"routerId":      routerId,
+		"status":        models.ACKED,
+		"currentStatus": models.SENT,
 	}
 	tag, err := r.storage.Exec(ctx, query, args)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("command with id %s or router id %s not found", commandId, routerId)
+		return fmt.Errorf(
+			"command with id %s for router %s not found or not in %s status",
+			commandId,
+			routerId,
+			models.SENT,
+		)
 	}
 	return nil
 }
