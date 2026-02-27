@@ -287,7 +287,7 @@ var File_api_v1_send_command_proto protoreflect.FileDescriptor
 
 const file_api_v1_send_command_proto_rawDesc = "" +
 	"\n" +
-	"\x19api/v1/send-command.proto\x12\x0erouter_manager\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x9a\x01\n" +
+	"\x19api/v1/send-command.proto\x12\x06api.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x9a\x01\n" +
 	"\x12SendCommandRequest\x12 \n" +
 	"\trouter_id\x18\x01 \x01(\tH\x00R\brouterId\x88\x01\x01\x12!\n" +
 	"\fcommand_type\x18\x02 \x01(\tR\vcommandType\x121\n" +
@@ -300,18 +300,18 @@ const file_api_v1_send_command_proto_rawDesc = "" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12!\n" +
 	"\fcommand_type\x18\x02 \x01(\tR\vcommandType\x121\n" +
-	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload\"C\n" +
-	"\fPollResponse\x123\n" +
-	"\bcommands\x18\x01 \x03(\v2\x17.router_manager.CommandR\bcommands\"H\n" +
+	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload\";\n" +
+	"\fPollResponse\x12+\n" +
+	"\bcommands\x18\x01 \x03(\v2\x0f.api.v1.CommandR\bcommands\"H\n" +
 	"\n" +
 	"AckRequest\x12\x1b\n" +
 	"\trouter_id\x18\x01 \x01(\tR\brouterId\x12\x1d\n" +
 	"\n" +
-	"command_id\x18\x02 \x01(\tR\tcommandId2\xd8\x01\n" +
-	"\rRouterManager\x12I\n" +
-	"\vSendCommand\x12\".router_manager.SendCommandRequest\x1a\x16.google.protobuf.Empty\x12A\n" +
-	"\x04Poll\x12\x1b.router_manager.PollRequest\x1a\x1c.router_manager.PollResponse\x129\n" +
-	"\x03Ack\x12\x1a.router_manager.AckRequest\x1a\x16.google.protobuf.EmptyB0Z.router-manager/internal/gen/proto/api/v1;apiv1b\x06proto3"
+	"command_id\x18\x02 \x01(\tR\tcommandId2\xb8\x01\n" +
+	"\rRouterManager\x12A\n" +
+	"\vSendCommand\x12\x1a.api.v1.SendCommandRequest\x1a\x16.google.protobuf.Empty\x121\n" +
+	"\x04Poll\x12\x13.api.v1.PollRequest\x1a\x14.api.v1.PollResponse\x121\n" +
+	"\x03Ack\x12\x12.api.v1.AckRequest\x1a\x16.google.protobuf.EmptyB0Z.router-manager/internal/gen/proto/api/v1;apiv1b\x06proto3"
 
 var (
 	file_api_v1_send_command_proto_rawDescOnce sync.Once
@@ -327,24 +327,24 @@ func file_api_v1_send_command_proto_rawDescGZIP() []byte {
 
 var file_api_v1_send_command_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_api_v1_send_command_proto_goTypes = []any{
-	(*SendCommandRequest)(nil), // 0: router_manager.SendCommandRequest
-	(*PollRequest)(nil),        // 1: router_manager.PollRequest
-	(*Command)(nil),            // 2: router_manager.Command
-	(*PollResponse)(nil),       // 3: router_manager.PollResponse
-	(*AckRequest)(nil),         // 4: router_manager.AckRequest
+	(*SendCommandRequest)(nil), // 0: api.v1.SendCommandRequest
+	(*PollRequest)(nil),        // 1: api.v1.PollRequest
+	(*Command)(nil),            // 2: api.v1.Command
+	(*PollResponse)(nil),       // 3: api.v1.PollResponse
+	(*AckRequest)(nil),         // 4: api.v1.AckRequest
 	(*structpb.Struct)(nil),    // 5: google.protobuf.Struct
 	(*emptypb.Empty)(nil),      // 6: google.protobuf.Empty
 }
 var file_api_v1_send_command_proto_depIdxs = []int32{
-	5, // 0: router_manager.SendCommandRequest.payload:type_name -> google.protobuf.Struct
-	5, // 1: router_manager.Command.payload:type_name -> google.protobuf.Struct
-	2, // 2: router_manager.PollResponse.commands:type_name -> router_manager.Command
-	0, // 3: router_manager.RouterManager.SendCommand:input_type -> router_manager.SendCommandRequest
-	1, // 4: router_manager.RouterManager.Poll:input_type -> router_manager.PollRequest
-	4, // 5: router_manager.RouterManager.Ack:input_type -> router_manager.AckRequest
-	6, // 6: router_manager.RouterManager.SendCommand:output_type -> google.protobuf.Empty
-	3, // 7: router_manager.RouterManager.Poll:output_type -> router_manager.PollResponse
-	6, // 8: router_manager.RouterManager.Ack:output_type -> google.protobuf.Empty
+	5, // 0: api.v1.SendCommandRequest.payload:type_name -> google.protobuf.Struct
+	5, // 1: api.v1.Command.payload:type_name -> google.protobuf.Struct
+	2, // 2: api.v1.PollResponse.commands:type_name -> api.v1.Command
+	0, // 3: api.v1.RouterManager.SendCommand:input_type -> api.v1.SendCommandRequest
+	1, // 4: api.v1.RouterManager.Poll:input_type -> api.v1.PollRequest
+	4, // 5: api.v1.RouterManager.Ack:input_type -> api.v1.AckRequest
+	6, // 6: api.v1.RouterManager.SendCommand:output_type -> google.protobuf.Empty
+	3, // 7: api.v1.RouterManager.Poll:output_type -> api.v1.PollResponse
+	6, // 8: api.v1.RouterManager.Ack:output_type -> google.protobuf.Empty
 	6, // [6:9] is the sub-list for method output_type
 	3, // [3:6] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name

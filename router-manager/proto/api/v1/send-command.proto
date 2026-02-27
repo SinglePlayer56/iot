@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package router_manager;
+package api.v1;
 option go_package = "router-manager/internal/gen/proto/api/v1;apiv1";
 
 import "google/protobuf/struct.proto";

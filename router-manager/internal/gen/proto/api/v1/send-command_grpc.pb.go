@@ -20,9 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RouterManager_SendCommand_FullMethodName = "/router_manager.RouterManager/SendCommand"
-	RouterManager_Poll_FullMethodName        = "/router_manager.RouterManager/Poll"
-	RouterManager_Ack_FullMethodName         = "/router_manager.RouterManager/Ack"
+	RouterManager_SendCommand_FullMethodName = "/api.v1.RouterManager/SendCommand"
+	RouterManager_Poll_FullMethodName        = "/api.v1.RouterManager/Poll"
+	RouterManager_Ack_FullMethodName         = "/api.v1.RouterManager/Ack"
 )
 
 // RouterManagerClient is the client API for RouterManager service.
@@ -177,7 +177,7 @@ func _RouterManager_Ack_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RouterManager_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "router_manager.RouterManager",
+	ServiceName: "api.v1.RouterManager",
 	HandlerType: (*RouterManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
