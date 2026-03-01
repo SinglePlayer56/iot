@@ -18,6 +18,25 @@ services:
       interval: 10s
       retries: 5
 
+  postgres-router-manager:
+    image: postgres:17
+    container_name: postgres-router-manager
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_ROUTER_MANAGER_PORT}:5432"
+    networks:
+      - iot_network
+    volumes:
+      - postgres-router-manager-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROUTER_MANAGER_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROUTER_MANAGER_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_ROUTER_MANAGER_DB}
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_ROUTER_MANAGER_USER}" ]
+      interval: 10s
+      retries: 5
+
   postgres-devices-shard-0-master:
     image: postgres:17
     container_name: postgres-devices-shard-0-master
@@ -817,6 +836,30 @@ services:
     networks:
       - iot_network
 
+  router-manager:
+    image: router-manager:latest
+    container_name: router-manager
+    build:
+      context: ../router-manager
+      dockerfile: ../router-manager/Dockerfile
+      extra_hosts:
+        - "host-gateway:host-gateway"
+      args:
+        TESTCONTAINERS_HOST_OVERRIDE: host-gateway
+        DOCKER_HOST: tcp://host-gateway:2375
+    ports:
+      - "${ROUTER_MANAGER_GRPC_PORT}:${ROUTER_MANAGER_GRPC_PORT}"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_ROUTER_MANAGER_USER}:${POSTGRES_ROUTER_MANAGER_PASSWORD}@postgres-router-manager:5432/${POSTGRES_ROUTER_MANAGER_DB}?sslmode=disable
+      GRPC_PORT: ${ROUTER_MANAGER_GRPC_PORT}
+      GRPC_TIMEOUT: ${ROUTER_MANAGER_GRPC_TIMEOUT}
+      COMMANDS_TTL: ${ROUTER_MANAGER_COMMANDS_TTL}
+    depends_on:
+      postgres-router-manager:
+        condition: service_healthy
+    networks:
+      - iot_network
+
   nexus:
     image: sonatype/nexus3:3.85.0
     container_name: nexus
@@ -878,6 +921,7 @@ networks:
 volumes:
   cassandra-data:
   postgres_commands_data:
+  postgres-router-manager-data:
   postgres_keycloak_data:
   kafka_data:
   schema_registry_data:

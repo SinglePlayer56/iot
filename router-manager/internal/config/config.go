@@ -16,16 +16,16 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Url string `yaml:"url"`
+	Url string `yaml:"url" env:"DATABASE_URL"`
 }
 
 type GRPCConfig struct {
-	Port    int           `yaml:"port"`
-	Timeout time.Duration `yaml:"timeout"`
+	Port    int           `yaml:"port"    env:"GRPC_PORT"`
+	Timeout time.Duration `yaml:"timeout" env:"GRPC_TIMEOUT"`
 }
 
 type CommandsConfig struct {
-	TTL time.Duration `yaml:"ttl"`
+	TTL time.Duration `yaml:"ttl" env:"COMMANDS_TTL"`
 }
 
 func MustLoad() *Config {
@@ -52,14 +52,10 @@ func MustLoadPath(configPath string) *Config {
 }
 
 func fetchConfigPath() string {
-	var res string
+	var configPath string
 
-	flag.StringVar(&res, "config", "", "path to config file")
+	flag.StringVar(&configPath, "config", "config/config.yaml", "path to config file")
 	flag.Parse()
 
-	if res == "" {
-		res = os.Getenv("CONFIG_PATH")
-	}
-
-	return res
+	return configPath
 }
