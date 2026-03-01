@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"router-manager/internal/domain/models"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +15,6 @@ type RouterService struct {
 
 type RouterRepository interface {
 	GetAllRoutersId(ctx context.Context) ([]uuid.UUID, error)
-	FindById(ctx context.Context, id uuid.UUID) (*models.Router, error)
 	UpdateLastSeen(ctx context.Context, id uuid.UUID) error
 }
 
@@ -42,22 +40,6 @@ func (s *RouterService) GetAllRoutersId(ctx context.Context) ([]uuid.UUID, error
 
 	s.log.Info("GetAllRoutersId ok", slog.Int("count", len(ids)))
 	return ids, nil
-}
-
-func (s *RouterService) FindById(ctx context.Context, id uuid.UUID) (*models.Router, error) {
-	s.log.Info("FindById", slog.String("router_id", id.String()))
-
-	if s.routerRepository == nil {
-		return nil, errors.New("router repository is nil")
-	}
-
-	router, err := s.routerRepository.FindById(ctx, id)
-	if err != nil {
-		s.log.Error("FindById failed", slog.String("router_id", id.String()), slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	return router, nil
 }
 
 func (s *RouterService) UpdateLastSeen(ctx context.Context, id uuid.UUID) error {
