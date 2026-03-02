@@ -19,7 +19,7 @@ import (
 
 type App struct {
 	GRPCServer              *grpcapp.App
-	CommandExpirationWorker *commandexpirationworker.App
+	CommandExpirationWorker *commandexpirationworker.CommandExpirationWorker
 	DB                      *dbapp.App
 }
 

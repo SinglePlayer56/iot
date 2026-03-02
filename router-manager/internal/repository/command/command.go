@@ -11,19 +11,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type Repository struct {
+type CommandRepository struct {
 	db        trmpgx.Tr
 	ctxGetter *trmpgx.CtxGetter
 }
 
-func New(db trmpgx.Tr, ctxGetter *trmpgx.CtxGetter) *Repository {
-	return &Repository{
+func New(db trmpgx.Tr, ctxGetter *trmpgx.CtxGetter) *CommandRepository {
+	return &CommandRepository{
 		db:        db,
 		ctxGetter: ctxGetter,
 	}
 }
 
-func (r *Repository) conn(ctx context.Context) trmpgx.Tr {
+func (r *CommandRepository) conn(ctx context.Context) trmpgx.Tr {
 	if r.ctxGetter == nil {
 		return r.db
 	}
@@ -31,7 +31,7 @@ func (r *Repository) conn(ctx context.Context) trmpgx.Tr {
 	return r.ctxGetter.DefaultTrOrDB(ctx, r.db)
 }
 
-func (r *Repository) SaveCommand(ctx context.Context, command models.Command) (*models.Command, error) {
+func (r *CommandRepository) SaveCommand(ctx context.Context, command models.Command) (*models.Command, error) {
 
 	query := `
 		INSERT INTO commands (
@@ -97,7 +97,7 @@ func (r *Repository) SaveCommand(ctx context.Context, command models.Command) (*
 	return &saved, nil
 }
 
-func (r *Repository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error) {
+func (r *CommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error) {
 	query := `
 		SELECT
 			id,
@@ -150,7 +150,7 @@ func (r *Repository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]mod
 	return commands, nil
 }
 
-func (r *Repository) SetSentCommandsBatch(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error {
+func (r *CommandRepository) SetSentCommandsBatch(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error {
 	if len(commandIds) == 0 {
 		return nil
 	}
@@ -178,7 +178,7 @@ func (r *Repository) SetSentCommandsBatch(ctx context.Context, routerId uuid.UUI
 	return nil
 }
 
-func (r *Repository) AckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error {
+func (r *CommandRepository) AckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error {
 	query := `
 		UPDATE commands
 		SET acked_at = NOW(), status = @status
@@ -208,7 +208,7 @@ func (r *Repository) AckCommand(ctx context.Context, routerId uuid.UUID, command
 	return nil
 }
 
-func (r *Repository) SaveCommandsBatch(ctx context.Context, commands []models.Command) error {
+func (r *CommandRepository) SaveCommandsBatch(ctx context.Context, commands []models.Command) error {
 	if len(commands) == 0 {
 		return nil
 	}
@@ -247,7 +247,7 @@ func (r *Repository) SaveCommandsBatch(ctx context.Context, commands []models.Co
 	return nil
 }
 
-func (r *Repository) ExpireSentCommandsBefore(ctx context.Context, threshold time.Time) (int, error) {
+func (r *CommandRepository) ExpireSentCommandsBefore(ctx context.Context, threshold time.Time) (int, error) {
 	query := `
 		UPDATE commands
 		SET status = @failedStatus

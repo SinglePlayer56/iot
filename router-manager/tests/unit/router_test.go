@@ -9,13 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"router-manager/internal/domain/models"
 	routerservice "router-manager/internal/services/router"
 )
 
 type mockRouterRepository struct {
 	getAllRoutersIdFn func(ctx context.Context) ([]uuid.UUID, error)
-	findByIdFn        func(ctx context.Context, id uuid.UUID) (*models.Router, error)
 	updateLastSeenFn  func(ctx context.Context, id uuid.UUID) error
 }
 

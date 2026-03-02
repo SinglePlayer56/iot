@@ -12,7 +12,7 @@ import (
 	commandservice "router-manager/internal/services/command"
 )
 
-type App struct {
+type CommandExpirationWorker struct {
 	log            *slog.Logger
 	txManager      trm.Manager
 	commandService *commandservice.CommandService
@@ -29,10 +29,10 @@ func New(
 	txManager trm.Manager,
 	commandService *commandservice.CommandService,
 	ttl time.Duration,
-) *App {
+) *CommandExpirationWorker {
 	ctx, cancel := context.WithCancel(parentCtx)
 
-	return &App{
+	return &CommandExpirationWorker{
 		log:            log,
 		txManager:      txManager,
 		commandService: commandService,
@@ -43,13 +43,13 @@ func New(
 	}
 }
 
-func (a *App) MustRun() {
+func (a *CommandExpirationWorker) MustRun() {
 	if err := a.Run(); err != nil {
 		panic(err)
 	}
 }
 
-func (a *App) Run() error {
+func (a *CommandExpirationWorker) Run() error {
 	if a.txManager == nil {
 		return errors.New("transaction manager is nil")
 	}
@@ -88,7 +88,7 @@ func (a *App) Run() error {
 	}
 }
 
-func (a *App) Stop() {
+func (a *CommandExpirationWorker) Stop() {
 	if a == nil {
 		return
 	}
@@ -102,7 +102,7 @@ func (a *App) Stop() {
 	<-a.done
 }
 
-func (a *App) runOnce(ctx context.Context) {
+func (a *CommandExpirationWorker) runOnce(ctx context.Context) {
 	var expiredCount int
 
 	err := a.txManager.Do(ctx, func(txCtx context.Context) error {

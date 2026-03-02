@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type serverApi struct {
+type GRPCControllerV1 struct {
 	apiv1.UnimplementedRouterManagerServer
 	txManager      trm.Manager
 	commandService *commandservice.CommandService
@@ -35,7 +35,7 @@ func Register(
 ) {
 	apiv1.RegisterRouterManagerServer(
 		gRPC,
-		&serverApi{
+		&GRPCControllerV1{
 			txManager:      txManager,
 			commandService: commandService,
 			routerService:  routerService,
@@ -43,7 +43,7 @@ func Register(
 	)
 }
 
-func (s *serverApi) SendCommand(
+func (s *GRPCControllerV1) SendCommand(
 	ctx context.Context,
 	req *apiv1.SendCommandRequest,
 ) (*emptypb.Empty, error) {
@@ -84,7 +84,7 @@ func (s *serverApi) SendCommand(
 	return &emptypb.Empty{}, nil
 }
 
-func (s *serverApi) Poll(
+func (s *GRPCControllerV1) Poll(
 	ctx context.Context,
 	req *apiv1.PollRequest,
 ) (*apiv1.PollResponse, error) {
@@ -129,7 +129,7 @@ func (s *serverApi) Poll(
 	}, nil
 }
 
-func (s *serverApi) Ack(
+func (s *GRPCControllerV1) Ack(
 	ctx context.Context,
 	req *apiv1.AckRequest,
 ) (*emptypb.Empty, error) {
@@ -156,7 +156,7 @@ func (s *serverApi) Ack(
 	return &emptypb.Empty{}, nil
 }
 
-func (s *serverApi) withTx(ctx context.Context, fn func(ctx context.Context) error) error {
+func (s *GRPCControllerV1) withTx(ctx context.Context, fn func(ctx context.Context) error) error {
 	if s.txManager == nil {
 		return errors.New("tx manager is nil")
 	}
