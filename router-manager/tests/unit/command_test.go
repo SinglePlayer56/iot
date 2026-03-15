@@ -18,7 +18,7 @@ import (
 
 type mockCommandRepository struct {
 	saveCommandFn            func(ctx context.Context, command models.Command) (*models.Command, error)
-	getCommandsFn            func(ctx context.Context, routerId uuid.UUID) ([]models.Command, error)
+	getCommandsFn            func(ctx context.Context, routerId uuid.UUID, limit int) ([]models.Command, error)
 	setSentCommandsBatchFn   func(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error
 	ackCommandFn             func(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error
 	saveCommandsBatchFn      func(ctx context.Context, commands []models.Command) error
@@ -32,9 +32,9 @@ func (m *mockCommandRepository) SaveCommand(ctx context.Context, command models.
 	return &command, nil
 }
 
-func (m *mockCommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error) {
+func (m *mockCommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID, limit int) ([]models.Command, error) {
 	if m.getCommandsFn != nil {
-		return m.getCommandsFn(ctx, routerId)
+		return m.getCommandsFn(ctx, routerId, limit)
 	}
 	return nil, nil
 }
@@ -148,7 +148,7 @@ func TestGetCommands_ReturnsCommandsList(t *testing.T) {
 
 	// Given: репозиторий возвращает список команд
 	repo := &mockCommandRepository{
-		getCommandsFn: func(_ context.Context, _ uuid.UUID) ([]models.Command, error) {
+		getCommandsFn: func(_ context.Context, _ uuid.UUID, _ int) ([]models.Command, error) {
 			return expected, nil
 		},
 	}
@@ -179,7 +179,7 @@ func TestGetCommands_WhenRepoFails_ReturnsError(t *testing.T) {
 
 	// Given: репозиторий возвращает ошибку
 	repo := &mockCommandRepository{
-		getCommandsFn: func(_ context.Context, _ uuid.UUID) ([]models.Command, error) {
+		getCommandsFn: func(_ context.Context, _ uuid.UUID, _ int) ([]models.Command, error) {
 			return nil, errors.New("db error")
 		},
 	}

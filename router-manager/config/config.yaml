@@ -1,6 +1,5 @@
 grpc:
   port: 44044
-  timeout: 5s
 commands:
   ttl: 30s
 database:

@@ -12,6 +12,8 @@ import (
 	commandservice "router-manager/internal/services/command"
 )
 
+const defaultCheckExpirationInterval = 5 * time.Second
+
 type CommandExpirationWorker struct {
 	log            *slog.Logger
 	txManager      trm.Manager
@@ -72,7 +74,7 @@ func (a *CommandExpirationWorker) Run() error {
 	/* запускаем один раз при старте, чтобы пометить FAILED уже истёкшие команды */
 	a.runOnce(a.ctx)
 
-	ticker := time.NewTicker(a.ttl)
+	ticker := time.NewTicker(a.computeCheckInterval(a.ttl))
 	defer ticker.Stop()
 
 	for {
@@ -124,4 +126,12 @@ func (a *CommandExpirationWorker) runOnce(ctx context.Context) {
 	if expiredCount > 0 && a.log != nil {
 		a.log.Info("expired commands marked as FAILED", slog.Int("count", expiredCount))
 	}
+}
+
+func (a *CommandExpirationWorker) computeCheckInterval(ttl time.Duration) time.Duration {
+	var interval = defaultCheckExpirationInterval
+	if ttl < defaultCheckExpirationInterval {
+		interval = ttl
+	}
+	return interval
 }

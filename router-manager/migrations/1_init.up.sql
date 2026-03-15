@@ -17,3 +17,10 @@ CREATE TABLE commands
     acked_at     TIMESTAMP,
     created_at   TIMESTAMP     DEFAULT now()
 );
+
+CREATE INDEX idx_commands_router_status_created
+    ON commands (router_id, status, created_at);
+
+CREATE INDEX idx_commands_sent_at_status
+    ON commands (sent_at)
+    WHERE status = 'SENT';

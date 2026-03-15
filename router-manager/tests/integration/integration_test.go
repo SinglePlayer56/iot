@@ -11,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	apiv1 "router-manager/internal/gen/proto/api/v1"
 	"router-manager/tests/suite"
@@ -172,6 +174,126 @@ func TestFullLifecycle_PendingSentAcked(t *testing.T) {
 
 	// Then: статус ACKED
 	assert.Equal(t, "ACKED", fetchCommand(ctx, t, st.DB, cmdID).Status)
+}
+
+func TestSendCommand_InvalidUUID_ReturnsInvalidArgument(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// When: отправляем команду с невалидным UUID
+	_, err := st.Client.SendCommand(ctx, &apiv1.SendCommandRequest{
+		RouterId:    strPtr("not-a-uuid"),
+		CommandType: "PING",
+	})
+
+	// Then: возвращается InvalidArgument
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestPoll_InvalidUUID_ReturnsInvalidArgument(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// When: Poll с невалидным UUID
+	_, err := st.Client.Poll(ctx, &apiv1.PollRequest{RouterId: "bad-uuid"})
+
+	// Then: возвращается InvalidArgument
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestAck_InvalidUUID_ReturnsInvalidArgument(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// When: Ack с невалидным command UUID
+	_, err := st.Client.Ack(ctx, &apiv1.AckRequest{
+		RouterId:  uuid.New().String(),
+		CommandId: "bad-uuid",
+	})
+
+	// Then: возвращается InvalidArgument
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestPoll_RouterNotFound_ReturnsNotFound(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// When: Poll для несуществующего роутера
+	_, err := st.Client.Poll(ctx, &apiv1.PollRequest{RouterId: uuid.New().String()})
+
+	// Then: возвращается NotFound
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestAck_CommandNotInSentStatus_ReturnsFailedPrecondition(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Given: роутер с PENDING-командой (не отправленной через Poll)
+	routerID := insertRouter(ctx, t, st.DB)
+	_, err := st.Client.SendCommand(ctx, &apiv1.SendCommandRequest{
+		RouterId:    strPtr(routerID.String()),
+		CommandType: "PING",
+	})
+	require.NoError(t, err)
+
+	cmdID := fetchFirstCommandID(ctx, t, st.DB, routerID)
+
+	// When: пытаемся подтвердить команду, которая ещё не в статусе SENT
+	_, err = st.Client.Ack(ctx, &apiv1.AckRequest{
+		RouterId:  routerID.String(),
+		CommandId: cmdID,
+	})
+
+	// Then: возвращается FailedPrecondition
+	require.Error(t, err)
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+}
+
+func TestTTLExpiration_SentCommandBecomesFailed(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Given: роутер получил команду через Poll
+	routerID := insertRouter(ctx, t, st.DB)
+	_, err := st.Client.SendCommand(ctx, &apiv1.SendCommandRequest{
+		RouterId:    strPtr(routerID.String()),
+		CommandType: "PING",
+	})
+	require.NoError(t, err)
+
+	pollResp, err := st.Client.Poll(ctx, &apiv1.PollRequest{RouterId: routerID.String()})
+	require.NoError(t, err)
+	require.NotEmpty(t, pollResp.Commands)
+	cmdID := pollResp.Commands[0].CommandId
+
+	// When: эмулируем истечение TTL — сдвигаем sent_at в прошлое
+	_, err = st.DB.Exec(ctx,
+		"UPDATE commands SET sent_at = sent_at - interval '1 hour' WHERE id = @id",
+		pgx.NamedArgs{"id": cmdID},
+	)
+	require.NoError(t, err)
+
+	// И вручную запускаем экспирацию через SQL (аналог того, что делает воркер)
+	_, err = st.DB.Exec(ctx,
+		`UPDATE commands SET status = 'FAILED'
+		 WHERE status = 'SENT' AND sent_at IS NOT NULL AND sent_at < now() - interval '30 seconds'`,
+	)
+	require.NoError(t, err)
+
+	// Then: команда перешла в FAILED
+	row := fetchCommand(ctx, t, st.DB, cmdID)
+	assert.Equal(t, "FAILED", row.Status)
+}
+
+func fetchFirstCommandID(ctx context.Context, t *testing.T, db *pgxpool.Pool, routerID uuid.UUID) string {
+	t.Helper()
+	var id string
+	err := db.QueryRow(ctx,
+		"SELECT id FROM commands WHERE router_id = @routerId ORDER BY created_at ASC LIMIT 1",
+		pgx.NamedArgs{"routerId": routerID},
+	).Scan(&id)
+	require.NoError(t, err)
+	return id
 }
 
 func insertRouter(ctx context.Context, t *testing.T, db *pgxpool.Pool) uuid.UUID {

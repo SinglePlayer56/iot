@@ -70,7 +70,7 @@ PENDING -> SENT -> ACKED/FAILED (по TTL)
 | `ACKED`   | Роутер подтвердил выполнение через `Ack`                              |
 | `FAILED`  | Команда осталась в `SENT` дольше `commands.ttl` и переведена воркером |
 
-> ℹ️ `Poll` возвращает команды со статусами `PENDING` и `SENT`.
+> ℹ️ `Poll` возвращает команды со статусами `PENDING` и `SENT` в порядке FIFO (`ORDER BY created_at ASC`), не более 100 команд за запрос.
 
 ---
 
@@ -167,7 +167,6 @@ go test -v ./tests/...
 |----------------|------------------------------|------------------------------------------------------------------------------|
 | `DATABASE_URL` | URL подключения к PostgreSQL | `postgres://postgres:postgres@localhost:5432/router_manager?sslmode=disable` |
 | `GRPC_PORT`    | Порт gRPC-сервера            | `44044`                                                                      |
-| `GRPC_TIMEOUT` | Таймаут gRPC                 | `5s`                                                                         |
 | `COMMANDS_TTL` | TTL для `SENT` команд        | `30s`                                                                        |
 
 ---

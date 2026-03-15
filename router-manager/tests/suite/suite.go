@@ -48,7 +48,19 @@ func New(t *testing.T) (context.Context, *Suite) {
 	if initErr != nil {
 		t.Fatalf("suite init: %v", initErr)
 	}
-	return context.Background(), instance
+
+	ctx := context.Background()
+	instance.cleanUp(ctx, t)
+
+	return ctx, instance
+}
+
+func (s *Suite) cleanUp(ctx context.Context, t *testing.T) {
+	t.Helper()
+	_, err := s.DB.Exec(ctx, "TRUNCATE commands, routers CASCADE")
+	if err != nil {
+		t.Fatalf("cleanUp: %v", err)
+	}
 }
 
 func newSuite() (*Suite, error) {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	domainerrors "router-manager/internal/domain/errors"
 	"router-manager/internal/domain/models"
 	apiv1 "router-manager/internal/gen/proto/api/v1"
 	"time"
@@ -15,6 +17,8 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -49,7 +53,7 @@ func (s *GRPCControllerV1) SendCommand(
 ) (*emptypb.Empty, error) {
 	payload, err := protojson.Marshal(req.Payload)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid payload")
 	}
 
 	commandType := models.CommandType(req.GetCommandType())
@@ -58,13 +62,13 @@ func (s *GRPCControllerV1) SendCommand(
 	if req.GetRouterId() != "" {
 		routerID, err := parseUUID(req.GetRouterId())
 		if err != nil {
-			return nil, err
+			return nil, mapError(err)
 		}
 
 		command := newPendingCommand(routerID, commandType, payload, createdAt)
 		_, err = s.commandService.SaveCommand(ctx, command)
 		if err != nil {
-			return nil, err
+			return nil, mapError(err)
 		}
 	} else {
 		err = s.withTx(ctx, func(txCtx context.Context) error {
@@ -77,7 +81,7 @@ func (s *GRPCControllerV1) SendCommand(
 			return s.commandService.SaveCommandsBatch(txCtx, commands)
 		})
 		if err != nil {
-			return nil, err
+			return nil, mapError(err)
 		}
 	}
 
@@ -90,7 +94,7 @@ func (s *GRPCControllerV1) Poll(
 ) (*apiv1.PollResponse, error) {
 	routerID, err := parseUUID(req.GetRouterId())
 	if err != nil {
-		return nil, err
+		return nil, mapError(err)
 	}
 
 	var protoCommands []*apiv1.Command
@@ -121,7 +125,7 @@ func (s *GRPCControllerV1) Poll(
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapError(err)
 	}
 
 	return &apiv1.PollResponse{
@@ -135,11 +139,11 @@ func (s *GRPCControllerV1) Ack(
 ) (*emptypb.Empty, error) {
 	commandID, err := parseUUID(req.GetCommandId())
 	if err != nil {
-		return nil, err
+		return nil, mapError(err)
 	}
 	routerID, err := parseUUID(req.GetRouterId())
 	if err != nil {
-		return nil, err
+		return nil, mapError(err)
 	}
 
 	err = s.withTx(ctx, func(txCtx context.Context) error {
@@ -150,7 +154,7 @@ func (s *GRPCControllerV1) Ack(
 		return s.commandService.SetAckCommand(txCtx, routerID, commandID)
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -207,7 +211,35 @@ func collectCommandIDs(commands []models.Command) []uuid.UUID {
 }
 
 func parseUUID(value string) (uuid.UUID, error) {
-	return uuid.Parse(value)
+	id, err := uuid.Parse(value)
+	if err != nil {
+		return uuid.Nil, &domainerrors.InvalidArgumentError{Field: "id", Message: fmt.Sprintf("invalid UUID: %s", value)}
+	}
+	return id, nil
+}
+
+func mapError(err error) error {
+	var invalidArg *domainerrors.InvalidArgumentError
+	if errors.As(err, &invalidArg) {
+		return status.Error(codes.InvalidArgument, invalidArg.Error())
+	}
+
+	var notFound *domainerrors.NotFoundError
+	if errors.As(err, &notFound) {
+		return status.Error(codes.NotFound, notFound.Error())
+	}
+
+	var failedPre *domainerrors.FailedPreconditionError
+	if errors.As(err, &failedPre) {
+		return status.Error(codes.FailedPrecondition, failedPre.Error())
+	}
+
+	var internalErr *domainerrors.InternalError
+	if errors.As(err, &internalErr) {
+		return status.Error(codes.Internal, "internal error")
+	}
+
+	return status.Error(codes.Internal, "internal error")
 }
 
 func toProtoCommand(command models.Command) (*apiv1.Command, error) {

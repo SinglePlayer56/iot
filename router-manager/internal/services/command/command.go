@@ -7,6 +7,8 @@ import (
 	"router-manager/internal/domain/models"
 	"time"
 
+	domainerrors "router-manager/internal/domain/errors"
+
 	"github.com/google/uuid"
 )
 
@@ -15,9 +17,11 @@ type CommandService struct {
 	commandRepository CommandRepository
 }
 
+const defaultPollBatchSize = 100
+
 type CommandRepository interface {
 	SaveCommand(ctx context.Context, command models.Command) (*models.Command, error)
-	GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error)
+	GetCommands(ctx context.Context, routerId uuid.UUID, limit int) ([]models.Command, error)
 	SetSentCommandsBatch(ctx context.Context, routerId uuid.UUID, commandIds []uuid.UUID) error
 	AckCommand(ctx context.Context, routerId uuid.UUID, commandId uuid.UUID) error
 	SaveCommandsBatch(ctx context.Context, commands []models.Command) error
@@ -43,7 +47,7 @@ func (s *CommandService) SaveCommand(ctx context.Context, command models.Command
 	}
 
 	if command.CommandType == "" {
-		return nil, errors.New("command_type is required")
+		return nil, &domainerrors.InvalidArgumentError{Field: "command_type", Message: "is required"}
 	}
 
 	if command.Status == "" {
@@ -68,10 +72,10 @@ func (s *CommandService) GetCommands(ctx context.Context, routerId uuid.UUID) ([
 	}
 
 	if routerId == uuid.Nil {
-		return nil, errors.New("routerId is required")
+		return nil, &domainerrors.InvalidArgumentError{Field: "router_id", Message: "is required"}
 	}
 
-	commands, err := s.commandRepository.GetCommands(ctx, routerId)
+	commands, err := s.commandRepository.GetCommands(ctx, routerId, defaultPollBatchSize)
 	if err != nil {
 		s.log.Error("GetCommands failed", slog.String("router_id", routerId.String()), slog.String("error", err.Error()))
 		return nil, err
@@ -89,12 +93,12 @@ func (s *CommandService) SetSendCommandsBatch(ctx context.Context, routerId uuid
 	}
 
 	if routerId == uuid.Nil {
-		return errors.New("routerId is required")
+		return &domainerrors.InvalidArgumentError{Field: "router_id", Message: "is required"}
 	}
 
 	for _, commandId := range commandIds {
 		if commandId == uuid.Nil {
-			return errors.New("commandId is required")
+			return &domainerrors.InvalidArgumentError{Field: "command_id", Message: "is required"}
 		}
 	}
 
@@ -114,11 +118,11 @@ func (s *CommandService) SetAckCommand(ctx context.Context, routerId uuid.UUID, 
 	}
 
 	if routerId == uuid.Nil {
-		return errors.New("routerId is required")
+		return &domainerrors.InvalidArgumentError{Field: "router_id", Message: "is required"}
 	}
 
 	if commandId == uuid.Nil {
-		return errors.New("commandId is required")
+		return &domainerrors.InvalidArgumentError{Field: "command_id", Message: "is required"}
 	}
 
 	if err := s.commandRepository.AckCommand(ctx, routerId, commandId); err != nil {
@@ -153,7 +157,7 @@ func (s *CommandService) ExpireOldCommands(ctx context.Context, ttl time.Duratio
 	}
 
 	if ttl <= 0 {
-		return 0, errors.New("ttl must be positive")
+		return 0, &domainerrors.InvalidArgumentError{Field: "ttl", Message: "must be positive"}
 	}
 
 	threshold := time.Now().Add(-ttl)

@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -20,8 +21,7 @@ type DatabaseConfig struct {
 }
 
 type GRPCConfig struct {
-	Port    int           `yaml:"port"    env:"GRPC_PORT"`
-	Timeout time.Duration `yaml:"timeout" env:"GRPC_TIMEOUT"`
+	Port int `yaml:"port" env:"GRPC_PORT"`
 }
 
 type CommandsConfig struct {
@@ -39,13 +39,13 @@ func MustLoad() *Config {
 
 func MustLoadPath(configPath string) *Config {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		panic("config file not found: " + configPath)
+		panic(fmt.Sprintf("config file not found: %s", configPath))
 	}
 
 	var config Config
 
 	if err := cleanenv.ReadConfig(configPath, &config); err != nil {
-		panic("cannot read config: " + err.Error())
+		panic(fmt.Sprintf("cannot read config: %s", err.Error()))
 	}
 
 	return &config

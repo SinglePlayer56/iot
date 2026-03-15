@@ -2,7 +2,8 @@ package router
 
 import (
 	"context"
-	"fmt"
+
+	domainerrors "router-manager/internal/domain/errors"
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/google/uuid"
@@ -33,21 +34,21 @@ func (r *RouterRepository) GetAllRoutersId(ctx context.Context) ([]uuid.UUID, er
 	query := `SELECT id FROM routers`
 	rows, err := r.conn(ctx).Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, &domainerrors.InternalError{Err: err}
 	}
 	defer rows.Close()
 	routersId := make([]uuid.UUID, 0)
 	for rows.Next() {
 		var routerId uuid.UUID
 		if err := rows.Scan(&routerId); err != nil {
-			return nil, err
+			return nil, &domainerrors.InternalError{Err: err}
 		}
 
 		routersId = append(routersId, routerId)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, &domainerrors.InternalError{Err: err}
 	}
 
 	return routersId, nil
@@ -61,10 +62,10 @@ func (r *RouterRepository) UpdateLastSeen(ctx context.Context, id uuid.UUID) err
 
 	tag, err := r.conn(ctx).Exec(ctx, query, args)
 	if err != nil {
-		return err
+		return &domainerrors.InternalError{Err: err}
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("router with id %s not found", id)
+		return &domainerrors.NotFoundError{Entity: "Router", ID: id.String()}
 	}
 	return nil
 }

@@ -6,6 +6,8 @@ import (
 	"router-manager/internal/domain/models"
 	"time"
 
+	domainerrors "router-manager/internal/domain/errors"
+
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -91,13 +93,13 @@ func (r *CommandRepository) SaveCommand(ctx context.Context, command models.Comm
 			&saved.CreatedAt,
 		)
 	if err != nil {
-		return nil, err
+		return nil, &domainerrors.InternalError{Err: err}
 	}
 
 	return &saved, nil
 }
 
-func (r *CommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID) ([]models.Command, error) {
+func (r *CommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID, limit int) ([]models.Command, error) {
 	query := `
 		SELECT
 			id,
@@ -110,17 +112,20 @@ func (r *CommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID)
 			created_at
 		FROM commands
 		WHERE router_id = @routerId AND status IN (@pendingStatus, @sentStatus)
+		ORDER BY created_at ASC
+		LIMIT @limit
 	`
 
 	args := pgx.NamedArgs{
 		"routerId":      routerId,
 		"pendingStatus": models.PENDING,
 		"sentStatus":    models.SENT,
+		"limit":         limit,
 	}
 
 	rows, err := r.conn(ctx).Query(ctx, query, args)
 	if err != nil {
-		return nil, err
+		return nil, &domainerrors.InternalError{Err: err}
 	}
 	defer rows.Close()
 
@@ -137,14 +142,14 @@ func (r *CommandRepository) GetCommands(ctx context.Context, routerId uuid.UUID)
 			&cmd.AckedAt,
 			&cmd.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, &domainerrors.InternalError{Err: err}
 		}
 
 		commands = append(commands, cmd)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, &domainerrors.InternalError{Err: err}
 	}
 
 	return commands, nil
@@ -172,7 +177,7 @@ func (r *CommandRepository) SetSentCommandsBatch(ctx context.Context, routerId u
 	}
 
 	if _, err := r.conn(ctx).Exec(ctx, query, args); err != nil {
-		return err
+		return &domainerrors.InternalError{Err: err}
 	}
 
 	return nil
@@ -195,15 +200,12 @@ func (r *CommandRepository) AckCommand(ctx context.Context, routerId uuid.UUID, 
 	}
 	tag, err := r.conn(ctx).Exec(ctx, query, args)
 	if err != nil {
-		return err
+		return &domainerrors.InternalError{Err: err}
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf(
-			"command with id %s for router %s not found or not in %s status",
-			commandId,
-			routerId,
-			models.SENT,
-		)
+		return &domainerrors.FailedPreconditionError{
+			Message: fmt.Sprintf("Command %s for router %s not found or not in %s status", commandId, routerId, models.SENT),
+		}
 	}
 	return nil
 }
@@ -241,7 +243,7 @@ func (r *CommandRepository) SaveCommandsBatch(ctx context.Context, commands []mo
 
 	_, err := r.conn(ctx).CopyFrom(ctx, table, cols, src)
 	if err != nil {
-		return err
+		return &domainerrors.InternalError{Err: err}
 	}
 
 	return nil
@@ -265,7 +267,7 @@ func (r *CommandRepository) ExpireSentCommandsBefore(ctx context.Context, thresh
 
 	tag, err := r.conn(ctx).Exec(ctx, query, args)
 	if err != nil {
-		return 0, err
+		return 0, &domainerrors.InternalError{Err: err}
 	}
 
 	return int(tag.RowsAffected()), nil

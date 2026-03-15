@@ -1,6 +1,7 @@
 @startuml
 !includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
+Person(orchestrator, "Orchestrator", "Отправляет команды роутерам")
 Person(router, "Router", "Получает и подтверждает команды")
 
 System_Boundary(router_manager_service, "router-manager") {
@@ -15,16 +16,16 @@ System_Boundary(router_manager_service, "router-manager") {
   Component(command_repository, "CommandRepository", "pgx", "CRUD операции с командами")
   Component(router_repository, "RouterRepository", "pgx", "CRUD операции с роутерами")
 
-  Component(config_loader, "ConfigLoader", "encoding/json", "Загрузка config.json")
+  Component(config_loader, "ConfigLoader", "cleanenv", "Загрузка config.yaml")
   Component(log, "Logger", "slog", "Настройки логера")
 
-  Rel(router, grpc_controller, "gRPC", "/commands/poll , /commands/ack")
-  Rel(grpc_controller, router, "gRPC", "/send-command")
+  Rel(orchestrator, grpc_controller, "gRPC", "/send-command")
+  Rel(router, grpc_controller, "gRPC", "/commands/poll, /commands/ack")
 
-  Rel(grpc_controller, command_service, "calls", "send/poll/ack")
-  Rel(grpc_controller, router_service, "calls", "register/heartbeat + last_seen")
+  Rel(grpc_controller, command_service, "calls", "Управление командами")
+  Rel(grpc_controller, router_service, "calls", "Управление роутерами")
 
-  Rel(expiration_worker, command_service, "expireOldCommands")
+  Rel(expiration_worker, command_service, "calls", "Истечение команд")
 
   Rel(command_service, command_repository, "CRUD операции")
   Rel(router_service, router_repository, "CRUD операции")
@@ -32,7 +33,8 @@ System_Boundary(router_manager_service, "router-manager") {
   Rel(config_loader, grpc_controller, "config")
   Rel(log, grpc_controller, "logs")
   Rel(log, command_service, "logs")
-  Rel(log, command_repository, "logs")
+  Rel(log, router_service, "logs")
+  Rel(log, expiration_worker, "logs")
 }
 
 ComponentDb(router_manager_data, "Router Manager DB", "PostgreSQL", "Хранилище с данными о роутерах и командах")
