@@ -43,6 +43,8 @@ FAILED_EVENTS_PROCESSOR ?= failed-events-processor $(KAFKA_SERVICES) minio
 
 FAILED_EVENTS_PROCESSOR_MONITORING ?= kafka-exporter $(MONITORING_SERVICES)
 
+ROUTER_MANAGER ?= router-manager postgres-router-manager
+
 SHARED_ARTIFACTS ?= avro-shared-library-publisher
 
 SERVICES_ARTIFACTS ?= device-service-publisher
@@ -271,3 +273,17 @@ failed-events-processor-monitoring-stop:
 
 failed-events-processor-monitoring-stop-remove:
 	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(FAILED_EVENTS_PROCESSOR) $(FAILED_EVENTS_PROCESSOR_MONITORING)
+
+router-manager-start:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(ROUTER_MANAGER)
+
+router-manager-start-build:
+	@$(MAKE) docker-proxy-start
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d $(ROUTER_MANAGER) --build
+	@$(MAKE) docker-proxy-stop
+
+router-manager-stop:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down $(ROUTER_MANAGER)
+
+router-manager-stop-remove:
+	$(DOCKER_COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE) down -v $(ROUTER_MANAGER)

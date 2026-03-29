@@ -1,0 +1,45 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Person(orchestrator, "Orchestrator", "Отправляет команды роутерам")
+Person(router, "Router", "Получает и подтверждает команды")
+
+System_Boundary(router_manager_service, "router-manager") {
+
+  Component(grpc_controller, "GRPCControllerV1", "grpc", "Принимает запросы по gRPC")
+
+  Component(command_service, "CommandService", "Go", "Бизнес логика работы с командами")
+  Component(router_service, "RouterService", "Go", "Бизнес логика работы с роутерами")
+
+  Component(expiration_worker, "CommandExpirationWorker", "Go", "Фоновый процесс для поиска и пометки протухших команд")
+
+  Component(command_repository, "CommandRepository", "pgx", "CRUD операции с командами")
+  Component(router_repository, "RouterRepository", "pgx", "CRUD операции с роутерами")
+
+  Component(config_loader, "ConfigLoader", "cleanenv", "Загрузка config.yaml")
+  Component(log, "Logger", "slog", "Настройки логера")
+
+  Rel(orchestrator, grpc_controller, "gRPC", "/send-command")
+  Rel(router, grpc_controller, "gRPC", "/commands/poll, /commands/ack")
+
+  Rel(grpc_controller, command_service, "calls", "Управление командами")
+  Rel(grpc_controller, router_service, "calls", "Управление роутерами")
+
+  Rel(expiration_worker, command_service, "calls", "Истечение команд")
+
+  Rel(command_service, command_repository, "CRUD операции")
+  Rel(router_service, router_repository, "CRUD операции")
+
+  Rel(config_loader, grpc_controller, "config")
+  Rel(log, grpc_controller, "logs")
+  Rel(log, command_service, "logs")
+  Rel(log, router_service, "logs")
+  Rel(log, expiration_worker, "logs")
+}
+
+ComponentDb(router_manager_data, "Router Manager DB", "PostgreSQL", "Хранилище с данными о роутерах и командах")
+
+Rel(command_repository, router_manager_data, "CRUD операции")
+Rel(router_repository, router_manager_data, "CRUD операции")
+
+@enduml

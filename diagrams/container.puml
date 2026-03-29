@@ -18,7 +18,9 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
     Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
+    Container(router_manager, "Router Manager", "Go", "Управление роутерами")
     Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
+    ContainerDb(postgresql_router_manager, "PostgreSQL (Router Manager)", "Реляционная БД", "Отдельная база для router-manager")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
@@ -54,6 +56,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, router_manager, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
 
     Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
@@ -69,6 +72,8 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(device_service, shard_device_collector_2_replica, "Чтение данных", "ShardingSphere JDBC")
     Rel(device_service, redis, "Кеширование")
     Rel(device_service, keycloak, "Валидация JWT токена")
+
+    Rel(router_manager, postgresql_router_manager, "Сохраняет и читает данные", "JDBC")
 }
 
 System_Boundary(observability, "Grafana") {

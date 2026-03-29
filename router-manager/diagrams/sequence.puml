@@ -1,0 +1,179 @@
+@startuml
+
+actor Orchestrator
+actor Router
+
+participant "GRPCControllerV1" as GRPC
+participant "CommandService" as CS
+participant "RouterService" as RS
+participant "CommandRepository" as CR
+participant "RouterRepository" as RR
+participant "CommandExpirationWorker" as W
+database "DB" as DB
+
+== gRPC /api/v1/send-command (от оркестратора) ==
+
+Orchestrator -> GRPC : gRPC /api/v1/send-command
+
+alt router_id задан
+  GRPC -> GRPC : parseUUID(router_id)
+  alt невалидный UUID
+    GRPC --> Orchestrator : InvalidArgument
+  else UUID валиден
+    GRPC -> CS : saveCommand(command, PENDING)
+    CS -> CR : save(command, PENDING)
+    CR -> DB : INSERT INTO commands (PENDING)
+    alt ошибка БД
+      DB --> CR : error
+      CR --> CS : InternalError
+      CS --> GRPC : InternalError
+      GRPC --> Orchestrator : Internal
+    else успех
+      DB --> CR : command
+      CR --> CS : command
+      CS --> GRPC : command
+      GRPC --> Orchestrator : OK
+    end
+  end
+else router_id не задан
+  GRPC -> RS : getAllRoutersId()
+  RS -> RR : findAll()
+  RR -> DB : SELECT id FROM routers
+  alt ошибка БД
+    DB --> RR : error
+    RR --> RS : InternalError
+    RS --> GRPC : InternalError
+    GRPC --> Orchestrator : Internal
+  else успех
+    DB --> RR : router_ids
+    RR --> RS : router_ids
+    RS --> GRPC : router_ids
+    GRPC -> CS : saveCommandsBatch(commands, PENDING)
+    CS -> CR : saveBatch(commands)
+    CR -> DB : COPY commands (PENDING)
+    alt ошибка БД
+      DB --> CR : error
+      CR --> CS : InternalError
+      CS --> GRPC : InternalError
+      GRPC --> Orchestrator : Internal
+    else успех
+      DB --> CR : OK
+      CR --> CS : OK
+      CS --> GRPC : OK
+      GRPC --> Orchestrator : OK
+    end
+  end
+end
+
+== gRPC /api/v1/commands/poll (роутер забирает команды) ==
+
+Router -> GRPC : gRPC /api/v1/commands/poll
+GRPC -> GRPC : parseUUID(router_id)
+
+alt невалидный UUID
+  GRPC --> Router : InvalidArgument
+else UUID валиден
+  GRPC -> RS : updateLastSeen(router_id)
+  RS -> RR : updateLastSeen(router_id)
+  RR -> DB : UPDATE routers SET last_seen_at=now()
+  alt ошибка БД
+    DB --> RR : error
+    RR --> RS : InternalError
+    RS --> GRPC : InternalError
+    GRPC --> Router : Internal
+  else роутер не найден
+    DB --> RR : 0 rows affected
+    RR --> RS : NotFoundError
+    RS --> GRPC : NotFoundError
+    GRPC --> Router : NotFound
+  else успех
+    DB --> RR : OK
+    RR --> RS : OK
+    RS --> GRPC : OK
+    GRPC -> CS : getCommandsForRouter(router_id, limit=100)
+    CS -> CR : findCommands(router_id, limit=100)
+    CR -> DB : SELECT commands\nWHERE status IN (PENDING, SENT)\nORDER BY created_at ASC\nLIMIT 100
+    alt ошибка БД
+      DB --> CR : error
+      CR --> CS : InternalError
+      CS --> GRPC : InternalError
+      GRPC --> Router : Internal
+    else успех
+      DB --> CR : commands
+      CR --> CS : commands
+      CS --> GRPC : commands
+      GRPC -> CS : markCommandsAsSent(command_ids)
+      CS -> CR : updateStatus(SENT, sent_at)
+      CR -> DB : UPDATE commands SET status=SENT, sent_at=now()
+      alt ошибка БД
+        DB --> CR : error
+        CR --> CS : InternalError
+        CS --> GRPC : InternalError
+        GRPC --> Router : Internal
+      else успех
+        DB --> CR : OK
+        CR --> CS : OK
+        CS --> GRPC : OK
+        GRPC --> Router : commands
+      end
+    end
+  end
+end
+
+== gRPC /api/v1/commands/ack (подтверждение выполнения) ==
+
+Router -> GRPC : gRPC /api/v1/commands/ack
+GRPC -> GRPC : parseUUID(command_id), parseUUID(router_id)
+
+alt невалидный UUID
+  GRPC --> Router : InvalidArgument
+else UUID валиден
+  GRPC -> RS : updateLastSeen(router_id)
+  RS -> RR : updateLastSeen(router_id)
+  RR -> DB : UPDATE routers SET last_seen_at=now()
+  alt ошибка БД
+    DB --> RR : error
+    RR --> RS : InternalError
+    RS --> GRPC : InternalError
+    GRPC --> Router : Internal
+  else роутер не найден
+    DB --> RR : 0 rows affected
+    RR --> RS : NotFoundError
+    RS --> GRPC : NotFoundError
+    GRPC --> Router : NotFound
+  else успех
+    DB --> RR : OK
+    RR --> RS : OK
+    RS --> GRPC : OK
+    GRPC -> CS : ackCommand(command_id, router_id)
+    CS -> CR : updateStatus(ACKED, acked_at)
+    CR -> DB : UPDATE commands SET status=ACKED, acked_at=now()\nWHERE id=command_id AND status=SENT
+    alt ошибка БД
+      DB --> CR : error
+      CR --> CS : InternalError
+      CS --> GRPC : InternalError
+      GRPC --> Router : Internal
+    else команда не в статусе SENT
+      DB --> CR : 0 rows affected
+      CR --> CS : FailedPreconditionError
+      CS --> GRPC : FailedPreconditionError
+      GRPC --> Router : FailedPrecondition
+    else успех
+      DB --> CR : OK
+      CR --> CS : OK
+      CS --> GRPC : OK
+      GRPC --> Router : OK
+    end
+  end
+end
+
+== Обработка просроченных команд ==
+
+W -> CS : expireOldCommands()
+CS -> CR : expireSentCommandsBefore(now - ttl)
+CR -> DB : UPDATE commands\nSET status = 'FAILED'\nWHERE status = 'SENT'\nAND sent_at < threshold
+DB --> CR : OK
+CR --> CS : OK
+CS --> W : OK
+
+@enduml

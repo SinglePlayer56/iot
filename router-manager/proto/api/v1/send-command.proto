@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package api.v1;
+option go_package = "router-manager/internal/gen/proto/api/v1;apiv1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
+
+service RouterManager {
+  rpc SendCommand (SendCommandRequest) returns (google.protobuf.Empty);
+  rpc Poll (PollRequest) returns (PollResponse);
+  rpc Ack (AckRequest) returns (google.protobuf.Empty);
+}
+
+message SendCommandRequest {
+  optional string router_id = 1;
+  string command_type = 2;
+  google.protobuf.Struct payload = 3;
+}
+
+message PollRequest {
+  string router_id = 1;
+}
+
+message Command {
+  string command_id = 1;
+  string command_type = 2;
+  google.protobuf.Struct payload = 3;
+}
+
+message PollResponse {
+  repeated Command commands = 1;
+}
+
+message AckRequest {
+  string router_id = 1;
+  string command_id = 2;
+}
