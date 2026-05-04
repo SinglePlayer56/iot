@@ -18,6 +18,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
     Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
+    Container(event_service, "Event Service", "Spring Boot", "Read операции с событиями")
     Container(router_manager, "Router Manager", "Go", "Управление роутерами")
     Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
     ContainerDb(postgresql_router_manager, "PostgreSQL (Router Manager)", "Реляционная БД", "Отдельная база для router-manager")
@@ -52,12 +53,14 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, failed_events_processor, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(nexus, event_service, "Получает артефакты на этапе сборки", "Gradle")
 
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, router_manager, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, event_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
 
     Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
     Rel(device_collector_service, kafka, "Публикует информацию об ошибках в dlt-topic", "Avro")
@@ -72,6 +75,9 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(device_service, shard_device_collector_2_replica, "Чтение данных", "ShardingSphere JDBC")
     Rel(device_service, redis, "Кеширование")
     Rel(device_service, keycloak, "Валидация JWT токена")
+
+    Rel(event_service, cassandra, "Чтение данных", "Spring Data Cassandra")
+    Rel(event_service, keycloak, "Валидация JWT токена")
 
     Rel(router_manager, postgresql_router_manager, "Сохраняет и читает данные", "JDBC")
 }
@@ -112,6 +118,7 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, event_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, event_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, failed_events_processor, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, cassandra, "Читает JMX")
     Rel(prometheus, schema_registry, "Читает JMX")
