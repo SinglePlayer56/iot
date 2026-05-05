@@ -1,0 +1,44 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(api-orchestrator, "API Orchestrator") {
+    Component(security_config, "SecurityConfig", "Spring Security", "Валидация JWT, настройка доступа")
+    Component(metrics_service, "MetricsService", "Micrometer", "Добавление кастомных метрик")
+    Component(configs, "Configs", "Конфигурации")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(exceptions, "Exceptions", "Кастомные ексепшены")
+    Component(saga_orchestrator, "Saga Orchestrator", "Application Service", "Оркестрация шагов саги, компенсации")
+
+    Component(device_controller_v1, "DeviceControllerV1", "REST", "REST контроллер")
+    Component(event_controller_v1, "EventControllerV1", "REST", "REST контроллер")
+    Component(command_controller_v1, "CommandControllerV1", "REST", "REST контроллер")
+
+    Component(device_service_adapter, "DeviceServiceAdapter", "Feign client")
+    Component(event_service_adapter, "EventServiceAdapter", "Feign client")
+    Component(router_manager_adapter, "RouterManagerAdapter", "gRPC/Feign")
+
+    Rel(device_controller_v1, saga_orchestrator, "Передача запроса на обработку")
+    Rel(event_controller_v1, saga_orchestrator, "Передача запроса на обработку")
+    Rel(command_controller_v1, saga_orchestrator, "Передача запроса на обработку")
+
+    Rel(saga_orchestrator, device_service_adapter, "Feign", "Порт для работы с устройствами")
+    Rel(saga_orchestrator, event_service_adapter, "Feign", "Порт для работы с событиями")
+    Rel(saga_orchestrator, router_manager_adapter, "gRPC/Feign", "Порт для работы с роутерами")
+
+    Rel(device_controller_v1, security_config, "Авторизация запросов")
+    Rel(event_controller_v1, security_config, "Авторизация запросов")
+    Rel(command_controller_v1, security_config, "Авторизация запросов")
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
+}
+
+Container(keycloak, "Keycloak", "OAuth 2.0", "Аутентификация")
+Container(device_service, "Device Service", "REST", "CRUD устройств")
+Container(event_service, "Event Service", "REST", "Read операции с событиями")
+Container(router_manager, "Router Manager", "gRPC", "Управление роутерами")
+
+Rel(security_config, keycloak, "Получение публичного ключа")
+Rel(device_service_adapter, device_service, "CRUD", "HTTPS/REST")
+Rel(event_service_adapter, event_service, "Read операции", "HTTPS/REST")
+Rel(router_manager_adapter, router_manager, "Вызовы", "gRPC")
+
+@enduml

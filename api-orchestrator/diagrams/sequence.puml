@@ -1,0 +1,152 @@
+@startuml
+
+actor User
+participant "DeviceControllerV1" as DC
+participant "EventControllerV1" as EC
+participant "CommandControllerV1" as CC
+participant "SagaOrchestrator" as SO
+participant "DeviceServiceAdapter" as DSA
+participant "EventServiceAdapter" as ESA
+participant "RouterManagerAdapter" as RMA
+participant "DeviceService" as DS
+participant "EventService" as ES
+participant "RouterManager" as RM
+
+== GET /api/v1/devices ==
+User -> DC: GET /api/v1/devices
+DC -> SO: getAllDevices
+SO -> DSA: getAllDevices
+DSA -> DS: GET /api/v1/devices
+DS --> DSA: HTTP 200 OK + List<Device>
+DSA --> SO: List<Device>
+SO --> DC: List<Device>
+DC --> User: HTTP 200 OK + List<Device>
+
+== GET /api/v1/devices/{id} ==
+User -> DC: GET /api/v1/devices/{id}
+DC -> SO: getDeviceById(id)
+SO -> DSA: findById(id)
+DSA -> DS: GET /api/v1/devices/{id}
+
+alt HTTP 404 NotFound
+    DS --> DSA: NotFoundException
+    DSA --> SO: NotFoundException
+    SO --> DC: NotFoundException
+    DC --> User: HTTP 404 NotFound
+else HTTP 200 OK + Device
+    DS --> DSA: Device
+    DSA --> SO: Device
+    SO --> DC: Device
+    DC --> User: HTTP 200 OK + Device
+end
+
+== GET /api/v1/events?params... ==
+User -> EC: GET /api/v1/events?params...
+EC -> SO: getEvents(params...)
+SO -> ESA: getEvents(params...)
+ESA -> ES: getEvents(params...)
+
+alt HTTP 400 BadRequest (переданы некорректные параметры)
+    ES --> ESA: BadRequestException
+    ESA --> SO: BadRequestException
+    SO --> EC: BadRequestException
+    EC --> User: HTTP 400 BadRequest
+else HTTP 200 OK + EventPage
+    ES --> ESA: EventPage
+    ESA --> SO: EventPage
+    SO --> EC: EventPage
+    EC --> User: HTTP 200 OK + EventPage
+end
+
+== GET /api/v1/events/{event_id}?device_id ==
+User -> EC: GET /api/v1/events/{event_id}?device_id={device_id}
+EC -> SO: getEventById(event_id, device_id)
+SO -> ESA: getEventById(event_id, device_id)
+ESA -> ES: getEventById(event_id, device_id)
+
+alt HTTP 404 NotFound
+    ES --> ESA: NotFoundException
+    ESA --> SO: NotFoundException
+    SO --> EC: NotFoundException
+    EC --> User: HTTP 404 NotFound
+else HTTP 200 OK
+    ES --> ESA: Event
+    ESA --> SO: Event
+    SO --> EC: Event
+    EC --> User: HTTP 200 OK + Event
+end
+
+== POST /api/v1/commands + command ==
+User -> CC: sendCommand(command)
+CC -> SO: sendCommand(command)
+SO -> RMA: sendCommand(command)
+RMA -> RM: SendCommand(command.deviceId, command.command, command.payload)
+
+alt Error
+    RM --> RMA: BadRequestException
+    RMA --> SO: BadRequestException
+    SO --> CC: BadRequestException
+    CC --> User: HTTP 400 BadRequest
+else Success
+    RM --> RMA: OK
+    RMA --> SO: OK
+    SO --> CC: OK
+    CC --> User: HTTP 202 Accepted
+end
+
+== GET /api/v1/commands/{id} ==
+User -> CC: getCommand(id)
+CC -> SO: getCommand(id)
+SO -> RMA: getCommand(id)
+RMA -> RM: getCommand(id)
+
+alt NotFound
+    RM --> RMA: NotFound
+    RMA --> SO: NotFoundException
+    SO --> CC: NotFoundException
+    CC --> User: HTTP 404 NotFound
+else Success
+    RM --> RMA: Command
+    RMA --> SO: Command
+    SO --> CC: Command
+    CC --> User: HTTP 200 OK + Command
+end
+
+== POST /api/v1/devices/{deviceId}/version + body ==
+User -> DC: POST /api/v1/devices/{deviceId}/version\n{targetVersion, idempotencyKey}
+DC -> SO: updateDeviceVersion(deviceId, body)
+SO -> DSA: updateDeviceVersion(deviceId, targetVersion)
+DSA -> DS: updateDeviceVersion(deviceId, targetVersion)
+
+alt HTTP 409 Conflict (optimistic lock)
+    DS --> DSA: ConflictException
+    DSA --> SO: ConflictException
+    SO --> DC: ConflictException
+    DC --> User: HTTP 409 Conflict
+else HTTP 200 OK
+    DS --> DSA: DeviceVersionInfo (с prevVersion)
+    DSA --> SO: DeviceVersionInfo (с prevVersion)
+
+    SO -> RMA: sendUpdateCommand(deviceId, targetVersion)
+    RMA -> RM: SendCommand(deviceId, UPDATE, targetVersion)
+
+    alt Error
+        RM --> RMA: Error
+        RMA --> SO: RouterManagerUpdateException
+
+        SO -> DSA: rollbackDeviceVersion(deviceId, prevVersion)
+        DSA -> DS: updateDeviceVersion(deviceId, prevVersion)
+        DS --> DSA: HTTP 200 OK
+        DSA --> SO: OK
+
+        SO --> DC: RouterManagerUpdateException
+        DC --> User: HTTP 502 Bad Gateway\n{error: "ROUTER_MANAGER_FAILED", compensated: true}
+    else Success
+        RM --> RMA: Empty (OK)
+        RMA --> SO: commandId
+        SO --> DC: UpdateDeviceVersionResponse
+        DC --> User: HTTP 200 OK\n{deviceId, prevVersion, targetVersion, commandId}
+    end
+end
+
+@enduml
