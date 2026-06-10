@@ -1,0 +1,26 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(event-service, "Event Service") {
+    Component(event_controller_v1, "EventControllerV1", "REST", "REST контроллер")
+    Component(security_config, "SecurityConfig", "Spring Security", "Валидация JWT, настройка доступа")
+    Component(event_service, "EventService", "Бизнес логика работы с событиями")
+    Component(event_repository, "EventRepository", "CRUD операции с событиями")
+    Component(metrics_service, "MetricsService", "Micrometer", "Добавление кастомных метрик")
+    Component(configs, "Configs", "Конфигурации")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(exceptions, "Exceptions", "Кастомные ексепшены")
+
+    Rel(event_controller_v1, security_config, "Авторизация запросов")
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
+    Rel(event_controller_v1, event_service, "Передача запроса на обработку")
+    Rel(event_service, event_repository, "CRUD операции с событиями")
+}
+
+ContainerDb(cassandra, "Cassandra Cluster", "NoSQL", "Хранение событий")
+Container(keycloak, "Keycloak", "OAuth 2.0", "Аутентификация")
+
+Rel(security_config, keycloak, "Получение публичного ключа")
+Rel(event_repository, cassandra, "CRUD операции", "Spring Data Cassandra")
+
+@enduml
