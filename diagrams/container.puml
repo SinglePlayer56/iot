@@ -23,6 +23,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
     ContainerDb(postgresql_router_manager, "PostgreSQL (Router Manager)", "Реляционная БД", "Отдельная база для router-manager")
     Container(api_orchestrator, "API Orchestrator", "Spring Boot", "Оркестрация вызовов к микросервисам")
+    ContainerDb(postgresql_api_orchestrator, "PostgreSQL (API Orchestrator)", "Реляционная БД", "Отдельная база для API Orchestrator")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
@@ -88,6 +89,7 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(api_orchestrator, device_service, "CRUD операции", "REST")
     Rel(api_orchestrator, router_manager, "gRPC вызовы", "gRPC")
     Rel(api_orchestrator, keycloak, "Валидация JWT токена")
+    Rel(api_orchestrator, postgresql_api_orchestrator, "Сохраняет и читает данные", "R2DBC")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -100,6 +102,7 @@ System_Boundary(observability, "Grafana") {
     Container(pg_ex_devices_shard2_master, "Postgres Exporter Device Collector Shard 2 Master", "Сбор и подготовка метрик")
     Container(pg_ex_devices_shard1_replica, "Postgres Exporter Device Collector Shard 1 Replica", "Сбор и подготовка метрик")
     Container(pg_ex_devices_shard2_replica, "Postgres Exporter Device Collector Shard 2 Replica", "Сбор и подготовка метрик")
+    Container(pg_ex_api_orchestrator, "Postgres Exporter Api Orchestrator DB", "Сбор и подготовка метрик")
     Container(pg_ex_commands, "Postgres Exporter Commands", "Сбор и подготовка метрик")
     Container(pg_ex_keycloak, "Postgres Exporter Keycloak", "Сбор и подготовка метрик")
     Container(kafka_ex, "Kafka exporter", "Сбор и подготовка метрик")
@@ -118,6 +121,7 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, pg_ex_devices_shard2_master, "Собирает метрики")
     Rel(prometheus, pg_ex_devices_shard1_replica, "Собирает метрики")
     Rel(prometheus, pg_ex_devices_shard2_replica, "Собирает метрики")
+    Rel(prometheus, pg_ex_api_orchestrator, "Собирает метрики"")
     Rel(prometheus, pg_ex_commands, "Собирает метрики")
     Rel(prometheus, kafka_ex, "Собирает метрики")
     Rel(prometheus, pg_ex_keycloak, "Собирает метрики")
@@ -138,6 +142,7 @@ System_Boundary(observability, "Grafana") {
     Rel(pg_ex_devices_shard2_master, shard_device_collector_2_master, "Собирает и подготавливает метрики")
     Rel(pg_ex_devices_shard1_replica, shard_device_collector_1_replica, "Собирает и подготавливает метрики")
     Rel(pg_ex_devices_shard2_replica, shard_device_collector_2_replica, "Собирает и подготавливает метрики")
+    Rel(pg_ex_api_orchestrator, postgresql_api_orchestrator, "Собирает и подготавливает метрики")
     Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
     Rel(pg_ex_commands, postgresql_commands, "Собирает и подготавливает метрики")
     Rel(kafka_ex, kafka, "Собирает и подготавливает метрики")

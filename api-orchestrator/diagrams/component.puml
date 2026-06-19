@@ -13,6 +13,9 @@ Container_Boundary(api-orchestrator, "API Orchestrator") {
     Component(event_controller_v1, "EventControllerV1", "REST", "REST контроллер")
     Component(command_controller_v1, "CommandControllerV1", "REST", "REST контроллер")
 
+    Component(operation_service, "OperationService", "Бизнес логика по работе c операциями")
+    Component(operation_repository, "OperationRepository", "R2DBC", "CRUD операции с операциями")
+
     Component(command_use_case, "CommandUseCaseService", "Application Service", "Отправка и получение команд")
     Component(event_use_case, "EventUseCaseService", "Application Service", "Чтение событий")
     Component(device_use_case, "DeviceUseCaseService", "Application Service", "CRUD операции с устройствами")
@@ -35,6 +38,9 @@ Container_Boundary(api-orchestrator, "API Orchestrator") {
     Rel(command_use_case, command_port, "Передача запроса")
     Rel(version_update_saga_service, device_port, "Обновление/откат версии устройства")
     Rel(version_update_saga_service, command_port, "Отправка команды на роутер")
+    Rel(version_update_saga_service, operation_service, "Сохранение/обновление операции")
+
+    Rel(operation_service, operation_repository, "CRUD операции с операциями")
 
     Rel_Back(device_port, device_service_adapter, "Реализует")
     Rel_Back(event_port, event_service_adapter, "Реализует")
@@ -50,10 +56,12 @@ Container(keycloak, "Keycloak", "OAuth 2.0", "Аутентификация")
 Container(device_service, "Device Service", "REST", "CRUD устройств")
 Container(event_service, "Event Service", "REST", "Read операции с событиями")
 Container(router_manager, "Router Manager", "gRPC", "Управление роутерами")
+ContainerDb(api_orchestrator_db, "PostgreSQL", "База данных для хранений операций")
 
 Rel(security_config, keycloak, "Получение публичного ключа")
 Rel(device_service_adapter, device_service, "CRUD", "HTTPS/REST")
 Rel(event_service_adapter, event_service, "Read операции", "HTTPS/REST")
 Rel(router_manager_adapter, router_manager, "Вызовы", "gRPC")
+Rel(operation_repository, api_orchestrator_db, "CRUD операции", "R2DBC")
 
 @enduml

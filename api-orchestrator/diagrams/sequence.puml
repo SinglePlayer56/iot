@@ -4,6 +4,8 @@ actor User
 participant "DeviceControllerV1" as DC
 participant "EventControllerV1" as EC
 participant "CommandControllerV1" as CC
+participant "OperationService" as OS
+participant "OperationRepository" as OR
 participant "VersionUpdateSagaService" as VUSS
 participant "DeviceUseCaseService" as DUCS
 participant "CommandUseCaseService" as CUCS
@@ -118,37 +120,71 @@ end
 == POST /api/v1/devices/{deviceId}/version + body ==
 User -> DC: POST /api/v1/devices/{deviceId}/version\n{targetVersion, idempotencyKey}
 DC -> VUSS: updateDeviceVersion(deviceId, body)
-VUSS -> DSA: updateDeviceVersion(deviceId, targetVersion)
-DSA -> DS: updateDeviceVersion(deviceId, targetVersion)
+VUSS -> OS: findByIdempotencyKey(idempotencyKey)
+OS -> OR: findByIdempotencyKey(idempotencyKey)
 
-alt HTTP 409 Conflict (optimistic lock)
-    DS --> DSA: ConflictException
-    DSA --> VUSS: ConflictException
-    VUSS --> DC: ConflictException
-    DC --> User: HTTP 409 Conflict
-else HTTP 200 OK
-    DS --> DSA: DeviceVersionInfo (с prevVersion)
-    DSA --> VUSS: DeviceVersionInfo (с prevVersion)
+alt Операция найдена (запрос уже обработан)
+    OR --> OS: Operation
+    OS --> VUSS: Operation
+    VUSS --> DC: сохранённый результат
+    DC --> User: HTTP 200 OK + сохранённый результат\n(без вызовов device-service и router-manager)
+else Операция не найдена
+    VUSS -> OS: createOperation(idempotencyKey)
+    OS -> OR: save(Operation {status=IN_PROGRESS})
+    OR --> OS: Operation
+    OS --> VUSS: Operation {status=IN_PROGRESS}
 
-    VUSS -> RMA: sendUpdateCommand(deviceId, targetVersion)
-    RMA -> RM: SendCommand(deviceId, UPDATE, targetVersion)
+    VUSS -> DSA: updateDeviceVersion(deviceId, targetVersion)
+    DSA -> DS: PATCH /api/v1/devices/{deviceId}/version\n{targetVersion, status=UPDATING, idempotencyKey}
 
-    alt Error
-        RM --> RMA: Error
-        RMA --> VUSS: RouterManagerUpdateException
+    alt HTTP 409 Conflict (параллельное обновление)
+        DS --> DSA: ConflictException
+        DSA --> VUSS: ConflictException
+        VUSS -> OS: updateOperationStatus(FAILED)
+        OS -> OR: updateOperationStatus(FAILED)
+        OR --> OS: OK
+        VUSS --> DC: ConflictException
+        DC --> User: HTTP 409 Conflict
+    else HTTP 200 OK
+        DS --> DSA: HTTP 200 + DeviceVersionInfo\n{prevVersion, status=UPDATING}
+        DSA --> VUSS: DeviceVersionInfo (с prevVersion)
 
-        VUSS -> DSA: rollbackDeviceVersion(deviceId, prevVersion)
-        DSA -> DS: updateDeviceVersion(deviceId, prevVersion)
-        DS --> DSA: HTTP 200 OK
-        DSA --> VUSS: OK
+        VUSS -> RMA: sendUpdateCommand(deviceId, targetVersion)
+        RMA -> RM: SendCommand(deviceId, UPDATE, targetVersion)
 
-        VUSS --> DC: RouterManagerUpdateException
-        DC --> User: HTTP 502 Bad Gateway\n{error: "ROUTER_MANAGER_FAILED", compensated: true}
-    else Success
-        RM --> RMA: Empty (OK)
-        RMA --> VUSS: commandId
-        VUSS --> DC: UpdateDeviceVersionResponse
-        DC --> User: HTTP 200 OK\n{deviceId, prevVersion, targetVersion, commandId}
+        alt Error
+            RM --> RMA: Error
+            RMA --> VUSS: RouterManagerUpdateException
+
+            VUSS -> DSA: rollbackDeviceVersion(deviceId, prevVersion)
+            DSA -> DS: POST /api/v1/devices/{deviceId}/version/rollback\n{rollbackTo=prevVersion, status=READY}
+
+            alt HTTP 5xx
+                DS --> DSA: HTTP 5xx
+                DSA --> VUSS: RollbackFailedException
+                VUSS -> OS: updateOperationStatus(FAILED)
+                OS -> OR: updateOperationStatus(FAILED)
+                OR --> OS: OK
+                VUSS --> DC: RollbackFailedException
+                DC --> User: HTTP 502 Bad Gateway\n{error: "ROLLBACK_FAILED", compensated: false}
+            else HTTP 2xx
+                DS --> DSA: HTTP 200 + Device\n{id=deviceId, version=prevVersion, status=READY}
+                DSA --> VUSS: Device
+                VUSS -> OS: updateOperationStatus(FAILED_COMPENSATED)
+                OS -> OR: updateOperationStatus(FAILED_COMPENSATED)
+                OR --> OS: OK
+                VUSS --> DC: RouterManagerUpdateException
+                DC --> User: HTTP 502 Bad Gateway\n{error: "ROUTER_MANAGER_FAILED", compensated: true}
+            end
+        else Success
+            RM --> RMA: commandId
+            RMA --> VUSS: commandId
+            VUSS -> OS: updateOperationStatus(COMPLETED)
+            OS -> OR: updateOperationStatus(COMPLETED)
+            OR --> OS: OK
+            VUSS --> DC: UpdateDeviceVersionResponse\n{deviceId, prevVersion, targetVersion, commandId}
+            DC --> User: HTTP 200 OK\n{deviceId, prevVersion, targetVersion, commandId}
+        end
     end
 end
 
