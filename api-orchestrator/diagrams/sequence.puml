@@ -1,0 +1,191 @@
+@startuml
+
+actor User
+participant "DeviceControllerV1" as DC
+participant "EventControllerV1" as EC
+participant "CommandControllerV1" as CC
+participant "OperationService" as OS
+participant "OperationRepository" as OR
+participant "VersionUpdateSagaService" as VUSS
+participant "DeviceUseCaseService" as DUCS
+participant "CommandUseCaseService" as CUCS
+participant "EventUseCaseService" as EUCS
+participant "DeviceServiceAdapter" as DSA
+participant "EventServiceAdapter" as ESA
+participant "RouterManagerAdapter" as RMA
+participant "DeviceService" as DS
+participant "EventService" as ES
+participant "RouterManager" as RM
+
+== GET /api/v1/devices ==
+User -> DC: GET /api/v1/devices
+DC -> DUCS: getAllDevices
+DUCS -> DSA: getAllDevices
+DSA -> DS: GET /api/v1/devices
+DS --> DSA: HTTP 200 OK + List<Device>
+DSA --> DUCS: List<Device>
+DUCS --> DC: List<Device>
+DC --> User: HTTP 200 OK + List<Device>
+
+== GET /api/v1/devices/{id} ==
+User -> DC: GET /api/v1/devices/{id}
+DC -> DUCS: getDeviceById(id)
+DUCS -> DSA: findById(id)
+DSA -> DS: GET /api/v1/devices/{id}
+
+alt HTTP 404 NotFound
+    DS --> DSA: NotFoundException
+    DSA --> DUCS: NotFoundException
+    DUCS --> DC: NotFoundException
+    DC --> User: HTTP 404 NotFound
+else HTTP 200 OK + Device
+    DS --> DSA: Device
+    DSA --> DUCS: Device
+    DUCS --> DC: Device
+    DC --> User: HTTP 200 OK + Device
+end
+
+== GET /api/v1/events?params... ==
+User -> EC: GET /api/v1/events?params...
+EC -> EUCS: getEvents(params...)
+EUCS -> ESA: getEvents(params...)
+ESA -> ES: getEvents(params...)
+
+alt HTTP 400 BadRequest (переданы некорректные параметры)
+    ES --> ESA: BadRequestException
+    ESA --> EUCS: BadRequestException
+    EUCS --> EC: BadRequestException
+    EC --> User: HTTP 400 BadRequest
+else HTTP 200 OK + EventPage
+    ES --> ESA: EventPage
+    ESA --> EUCS: EventPage
+    EUCS --> EC: EventPage
+    EC --> User: HTTP 200 OK + EventPage
+end
+
+== GET /api/v1/events/{event_id}?device_id ==
+User -> EC: GET /api/v1/events/{event_id}?device_id={device_id}
+EC -> EUCS: getEventById(event_id, device_id)
+EUCS -> ESA: getEventById(event_id, device_id)
+ESA -> ES: getEventById(event_id, device_id)
+
+alt HTTP 404 NotFound
+    ES --> ESA: NotFoundException
+    ESA --> EUCS: NotFoundException
+    EUCS --> EC: NotFoundException
+    EC --> User: HTTP 404 NotFound
+else HTTP 200 OK
+    ES --> ESA: Event
+    ESA --> EUCS: Event
+    EUCS --> EC: Event
+    EC --> User: HTTP 200 OK + Event
+end
+
+== POST /api/v1/commands + command ==
+User -> CC: sendCommand(command)
+CC -> CUCS: sendCommand(command)
+CUCS -> RMA: sendCommand(command)
+RMA -> RM: SendCommand(command.deviceId, command.command, command.payload)
+
+alt Error
+    RM --> RMA: BadRequestException
+    RMA --> CUCS: BadRequestException
+    CUCS --> CC: BadRequestException
+    CC --> User: HTTP 400 BadRequest
+else Success
+    RM --> RMA: OK
+    RMA --> CUCS: OK
+    CUCS --> CC: OK
+    CC --> User: HTTP 202 Accepted
+end
+
+== GET /api/v1/commands/{id} ==
+User -> CC: getCommand(id)
+CC -> CUCS: getCommand(id)
+CUCS -> RMA: getCommand(id)
+RMA -> RM: getCommand(id)
+
+alt NotFound
+    RM --> RMA: NotFound
+    RMA --> CUCS: NotFoundException
+    CUCS --> CC: NotFoundException
+    CC --> User: HTTP 404 NotFound
+else Success
+    RM --> RMA: Command
+    RMA --> CUCS: Command
+    CUCS --> CC: Command
+    CC --> User: HTTP 200 OK + Command
+end
+
+== POST /api/v1/devices/{deviceId}/version + body ==
+User -> DC: POST /api/v1/devices/{deviceId}/version\n{targetVersion, idempotencyKey}
+DC -> VUSS: updateDeviceVersion(deviceId, body)
+VUSS -> OS: findByIdempotencyKey(idempotencyKey)
+OS -> OR: findByIdempotencyKey(idempotencyKey)
+
+alt Операция найдена (запрос уже обработан)
+    OR --> OS: Operation
+    OS --> VUSS: Operation
+    VUSS --> DC: сохранённый результат
+    DC --> User: HTTP 200 OK + сохранённый результат\n(без вызовов device-service и router-manager)
+else Операция не найдена
+    VUSS -> OS: createOperation(idempotencyKey)
+    OS -> OR: save(Operation {status=IN_PROGRESS})
+    OR --> OS: Operation
+    OS --> VUSS: Operation {status=IN_PROGRESS}
+
+    VUSS -> DSA: updateDeviceVersion(deviceId, targetVersion)
+    DSA -> DS: PATCH /api/v1/devices/{deviceId}/version\n{targetVersion, status=UPDATING, idempotencyKey}
+
+    alt HTTP 409 Conflict (параллельное обновление)
+        DS --> DSA: ConflictException
+        DSA --> VUSS: ConflictException
+        VUSS -> OS: updateOperationStatus(FAILED)
+        OS -> OR: updateOperationStatus(FAILED)
+        OR --> OS: OK
+        VUSS --> DC: ConflictException
+        DC --> User: HTTP 409 Conflict
+    else HTTP 200 OK
+        DS --> DSA: HTTP 200 + DeviceVersionInfo\n{prevVersion, status=UPDATING}
+        DSA --> VUSS: DeviceVersionInfo (с prevVersion)
+
+        VUSS -> RMA: sendUpdateCommand(deviceId, targetVersion)
+        RMA -> RM: SendCommand(deviceId, UPDATE, targetVersion)
+
+        alt Error
+            RM --> RMA: Error
+            RMA --> VUSS: RouterManagerUpdateException
+
+            VUSS -> DSA: rollbackDeviceVersion(deviceId, prevVersion)
+            DSA -> DS: POST /api/v1/devices/{deviceId}/version/rollback\n{rollbackTo=prevVersion, status=READY}
+
+            alt HTTP 5xx
+                DS --> DSA: HTTP 5xx
+                DSA --> VUSS: RollbackFailedException
+                VUSS -> OS: updateOperationStatus(FAILED)
+                OS -> OR: updateOperationStatus(FAILED)
+                OR --> OS: OK
+                VUSS --> DC: RollbackFailedException
+                DC --> User: HTTP 502 Bad Gateway\n{error: "ROLLBACK_FAILED", compensated: false}
+            else HTTP 2xx
+                DS --> DSA: HTTP 200 + Device\n{id=deviceId, version=prevVersion, status=READY}
+                DSA --> VUSS: Device
+                VUSS -> OS: updateOperationStatus(FAILED_COMPENSATED)
+                OS -> OR: updateOperationStatus(FAILED_COMPENSATED)
+                OR --> OS: OK
+                VUSS --> DC: RouterManagerUpdateException
+                DC --> User: HTTP 502 Bad Gateway\n{error: "ROUTER_MANAGER_FAILED", compensated: true}
+            end
+        else Success
+            RM --> RMA: commandId
+            RMA --> VUSS: commandId
+            VUSS -> OS: updateOperationStatus(COMPLETED)
+            OS -> OR: updateOperationStatus(COMPLETED)
+            OR --> OS: OK
+            VUSS --> DC: UpdateDeviceVersionResponse\n{deviceId, prevVersion, targetVersion, commandId}
+            DC --> User: HTTP 200 OK\n{deviceId, prevVersion, targetVersion, commandId}
+        end
+    end
+end
+
+@enduml

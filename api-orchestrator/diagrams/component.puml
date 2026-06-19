@@ -1,0 +1,67 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(api-orchestrator, "API Orchestrator") {
+    Component(security_config, "SecurityConfig", "Spring Security", "Валидация JWT, настройка доступа")
+    Component(metrics_service, "MetricsService", "Micrometer", "Добавление кастомных метрик")
+    Component(configs, "Configs", "Конфигурации")
+    Component(aspects, "Aspects", "Аспекты")
+    Component(exceptions, "Exceptions", "Кастомные ексепшены")
+    Component(version_update_saga_service, "VersionUpdateSagaService", "Application Service", "Оркестрация шагов саги, компенсации")
+
+    Component(device_controller_v1, "DeviceControllerV1", "REST", "REST контроллер")
+    Component(event_controller_v1, "EventControllerV1", "REST", "REST контроллер")
+    Component(command_controller_v1, "CommandControllerV1", "REST", "REST контроллер")
+
+    Component(operation_service, "OperationService", "Бизнес логика по работе c операциями")
+    Component(operation_repository, "OperationRepository", "R2DBC", "CRUD операции с операциями")
+
+    Component(command_use_case, "CommandUseCaseService", "Application Service", "Отправка и получение команд")
+    Component(event_use_case, "EventUseCaseService", "Application Service", "Чтение событий")
+    Component(device_use_case, "DeviceUseCaseService", "Application Service", "CRUD операции с устройствами")
+
+    Component(command_port, "CommandPort", "Outbound Port", "Интерфейс работы с роутерами")
+    Component(event_port, "EventPort", "Outbound Port", "Интерфейс работы с событиями")
+    Component(device_port, "DevicePort", "Outbound Port", "Интерфейс работы с устройствами")
+
+    Component(device_service_adapter, "DeviceServiceAdapter", "Feign client", "Адаптер Device Service")
+    Component(event_service_adapter, "EventServiceAdapter", "Feign client", "Адаптер Event Service")
+    Component(router_manager_adapter, "RouterManagerAdapter", "gRPC/Feign", "Адаптер Router Manager")
+
+    Rel(device_controller_v1, device_use_case, "Передача запроса на обработку")
+    Rel(device_controller_v1, version_update_saga_service, "Передача запроса на обработку")
+    Rel(event_controller_v1, event_use_case, "Передача запроса на обработку")
+    Rel(command_controller_v1, command_use_case, "Передача запроса на обработку")
+
+    Rel(device_use_case, device_port, "Передача запроса")
+    Rel(event_use_case, event_port, "Передача запроса")
+    Rel(command_use_case, command_port, "Передача запроса")
+    Rel(version_update_saga_service, device_port, "Обновление/откат версии устройства")
+    Rel(version_update_saga_service, command_port, "Отправка команды на роутер")
+    Rel(version_update_saga_service, operation_service, "Сохранение/обновление операции")
+
+    Rel(operation_service, operation_repository, "CRUD операции с операциями")
+
+    Rel_Back(device_port, device_service_adapter, "Реализует")
+    Rel_Back(event_port, event_service_adapter, "Реализует")
+    Rel_Back(command_port, router_manager_adapter, "Реализует")
+
+    Rel(device_controller_v1, security_config, "Авторизация запросов")
+    Rel(event_controller_v1, security_config, "Авторизация запросов")
+    Rel(command_controller_v1, security_config, "Авторизация запросов")
+    Rel(aspects, metrics_service, "Обновление счетчиков метрик")
+}
+
+Container(keycloak, "Keycloak", "OAuth 2.0", "Аутентификация")
+Container(device_service, "Device Service", "REST", "CRUD устройств")
+Container(event_service, "Event Service", "REST", "Read операции с событиями")
+Container(router_manager, "Router Manager", "gRPC", "Управление роутерами")
+ContainerDb(api_orchestrator_db, "PostgreSQL", "База данных для хранений операций")
+
+Rel(security_config, keycloak, "Получение публичного ключа")
+Rel(device_service_adapter, device_service, "CRUD", "HTTPS/REST")
+Rel(event_service_adapter, event_service, "Read операции", "HTTPS/REST")
+Rel(router_manager_adapter, router_manager, "Вызовы", "gRPC")
+Rel(operation_repository, api_orchestrator_db, "CRUD операции", "R2DBC")
+
+@enduml

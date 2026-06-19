@@ -18,9 +18,12 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Container(event_collector_service, "Event Collector Service", "Spring Boot", "Обработка событий")
     Container(device_collector_service, "Device Collector Service", "Spring Boot", "Обработка устройств")
     Container(device_service, "Device Service", "Spring Boot", "CRUD операции с устройствами")
+    Container(event_service, "Event Service", "Spring Boot", "Read операции с событиями")
     Container(router_manager, "Router Manager", "Go", "Управление роутерами")
     Container(failed_events_processor, "Failed Events Processor", "Spring Boot", "Обработка ошибок из топика dlt-topic")
     ContainerDb(postgresql_router_manager, "PostgreSQL (Router Manager)", "Реляционная БД", "Отдельная база для router-manager")
+    Container(api_orchestrator, "API Orchestrator", "Spring Boot", "Оркестрация вызовов к микросервисам")
+    ContainerDb(postgresql_api_orchestrator, "PostgreSQL (API Orchestrator)", "Реляционная БД", "Отдельная база для API Orchestrator")
 
     Boundary(device_collector_data, "Device DB Cluster") {
         ContainerDb(shard_device_collector_1_master, "DB Shard 1(Master)", "PostgreSQL", "Database")
@@ -52,12 +55,16 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel_Back(nexus, device_collector_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, device_service, "Получает артефакты на этапе сборки", "Gradle")
     Rel_Back(nexus, failed_events_processor, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(nexus, event_service, "Получает артефакты на этапе сборки", "Gradle")
+    Rel_Back(nexus, api_orchestrator, "Получает артефакты на этапе сборки", "Gradle")
 
     Rel_Back(docker_proxy, event_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_collector_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, device_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, router_manager, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
     Rel_Back(docker_proxy, failed_events_processor, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, event_service, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
+    Rel_Back(docker_proxy, api_orchestrator, "Получает доступ к Docker сокету на этапе сборки", "Integration tests")
 
     Rel(device_collector_service, kafka, "Читает из топиков devices и devices-delete", "Avro")
     Rel(device_collector_service, kafka, "Публикует информацию об ошибках в dlt-topic", "Avro")
@@ -73,7 +80,16 @@ System_Boundary(iotSystem, "IoT Monitoring Platform") {
     Rel(device_service, redis, "Кеширование")
     Rel(device_service, keycloak, "Валидация JWT токена")
 
+    Rel(event_service, cassandra, "Чтение данных", "Spring Data Cassandra")
+    Rel(event_service, keycloak, "Валидация JWT токена")
+
     Rel(router_manager, postgresql_router_manager, "Сохраняет и читает данные", "JDBC")
+
+    Rel(api_orchestrator, event_service, "Read операции", "REST")
+    Rel(api_orchestrator, device_service, "CRUD операции", "REST")
+    Rel(api_orchestrator, router_manager, "gRPC вызовы", "gRPC")
+    Rel(api_orchestrator, keycloak, "Валидация JWT токена")
+    Rel(api_orchestrator, postgresql_api_orchestrator, "Сохраняет и читает данные", "R2DBC")
 }
 
 System_Boundary(observability, "Grafana") {
@@ -86,6 +102,7 @@ System_Boundary(observability, "Grafana") {
     Container(pg_ex_devices_shard2_master, "Postgres Exporter Device Collector Shard 2 Master", "Сбор и подготовка метрик")
     Container(pg_ex_devices_shard1_replica, "Postgres Exporter Device Collector Shard 1 Replica", "Сбор и подготовка метрик")
     Container(pg_ex_devices_shard2_replica, "Postgres Exporter Device Collector Shard 2 Replica", "Сбор и подготовка метрик")
+    Container(pg_ex_api_orchestrator, "Postgres Exporter Api Orchestrator DB", "Сбор и подготовка метрик")
     Container(pg_ex_commands, "Postgres Exporter Commands", "Сбор и подготовка метрик")
     Container(pg_ex_keycloak, "Postgres Exporter Keycloak", "Сбор и подготовка метрик")
     Container(kafka_ex, "Kafka exporter", "Сбор и подготовка метрик")
@@ -104,6 +121,7 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, pg_ex_devices_shard2_master, "Собирает метрики")
     Rel(prometheus, pg_ex_devices_shard1_replica, "Собирает метрики")
     Rel(prometheus, pg_ex_devices_shard2_replica, "Собирает метрики")
+    Rel(prometheus, pg_ex_api_orchestrator, "Собирает метрики"")
     Rel(prometheus, pg_ex_commands, "Собирает метрики")
     Rel(prometheus, kafka_ex, "Собирает метрики")
     Rel(prometheus, pg_ex_keycloak, "Собирает метрики")
@@ -112,6 +130,8 @@ System_Boundary(observability, "Grafana") {
     Rel(prometheus, event_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_collector_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, device_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, event_service, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
+    Rel(prometheus, api_orchestrator, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, failed_events_processor, "Собирает метрики", "Actuator endpoints: /health , /info , /metrics")
     Rel(prometheus, cassandra, "Читает JMX")
     Rel(prometheus, schema_registry, "Читает JMX")
@@ -122,6 +142,7 @@ System_Boundary(observability, "Grafana") {
     Rel(pg_ex_devices_shard2_master, shard_device_collector_2_master, "Собирает и подготавливает метрики")
     Rel(pg_ex_devices_shard1_replica, shard_device_collector_1_replica, "Собирает и подготавливает метрики")
     Rel(pg_ex_devices_shard2_replica, shard_device_collector_2_replica, "Собирает и подготавливает метрики")
+    Rel(pg_ex_api_orchestrator, postgresql_api_orchestrator, "Собирает и подготавливает метрики")
     Rel(pg_ex_keycloak, keycloak_db, "Собирает и подготавливает метрики")
     Rel(pg_ex_commands, postgresql_commands, "Собирает и подготавливает метрики")
     Rel(kafka_ex, kafka, "Собирает и подготавливает метрики")
