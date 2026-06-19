@@ -7,23 +7,38 @@ Container_Boundary(api-orchestrator, "API Orchestrator") {
     Component(configs, "Configs", "Конфигурации")
     Component(aspects, "Aspects", "Аспекты")
     Component(exceptions, "Exceptions", "Кастомные ексепшены")
-    Component(saga_orchestrator, "Saga Orchestrator", "Application Service", "Оркестрация шагов саги, компенсации")
+    Component(version_update_saga_service, "VersionUpdateSagaService", "Application Service", "Оркестрация шагов саги, компенсации")
 
     Component(device_controller_v1, "DeviceControllerV1", "REST", "REST контроллер")
     Component(event_controller_v1, "EventControllerV1", "REST", "REST контроллер")
     Component(command_controller_v1, "CommandControllerV1", "REST", "REST контроллер")
 
-    Component(device_service_adapter, "DeviceServiceAdapter", "Feign client")
-    Component(event_service_adapter, "EventServiceAdapter", "Feign client")
-    Component(router_manager_adapter, "RouterManagerAdapter", "gRPC/Feign")
+    Component(command_use_case, "CommandUseCaseService", "Application Service", "Отправка и получение команд")
+    Component(event_use_case, "EventUseCaseService", "Application Service", "Чтение событий")
+    Component(device_use_case, "DeviceUseCaseService", "Application Service", "CRUD операции с устройствами")
 
-    Rel(device_controller_v1, saga_orchestrator, "Передача запроса на обработку")
-    Rel(event_controller_v1, saga_orchestrator, "Передача запроса на обработку")
-    Rel(command_controller_v1, saga_orchestrator, "Передача запроса на обработку")
+    Component(command_port, "CommandPort", "Outbound Port", "Интерфейс работы с роутерами")
+    Component(event_port, "EventPort", "Outbound Port", "Интерфейс работы с событиями")
+    Component(device_port, "DevicePort", "Outbound Port", "Интерфейс работы с устройствами")
 
-    Rel(saga_orchestrator, device_service_adapter, "Feign", "Порт для работы с устройствами")
-    Rel(saga_orchestrator, event_service_adapter, "Feign", "Порт для работы с событиями")
-    Rel(saga_orchestrator, router_manager_adapter, "gRPC/Feign", "Порт для работы с роутерами")
+    Component(device_service_adapter, "DeviceServiceAdapter", "Feign client", "Адаптер Device Service")
+    Component(event_service_adapter, "EventServiceAdapter", "Feign client", "Адаптер Event Service")
+    Component(router_manager_adapter, "RouterManagerAdapter", "gRPC/Feign", "Адаптер Router Manager")
+
+    Rel(device_controller_v1, device_use_case, "Передача запроса на обработку")
+    Rel(device_controller_v1, version_update_saga_service, "Передача запроса на обработку")
+    Rel(event_controller_v1, event_use_case, "Передача запроса на обработку")
+    Rel(command_controller_v1, command_use_case, "Передача запроса на обработку")
+
+    Rel(device_use_case, device_port, "Передача запроса")
+    Rel(event_use_case, event_port, "Передача запроса")
+    Rel(command_use_case, command_port, "Передача запроса")
+    Rel(version_update_saga_service, device_port, "Обновление/откат версии устройства")
+    Rel(version_update_saga_service, command_port, "Отправка команды на роутер")
+
+    Rel_Back(device_port, device_service_adapter, "Реализует")
+    Rel_Back(event_port, event_service_adapter, "Реализует")
+    Rel_Back(command_port, router_manager_adapter, "Реализует")
 
     Rel(device_controller_v1, security_config, "Авторизация запросов")
     Rel(event_controller_v1, security_config, "Авторизация запросов")
