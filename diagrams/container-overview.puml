@@ -1,0 +1,56 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+HIDE_STEREOTYPE()
+
+Person(client, "Клиент API", "Пользователь с ролью device-service.user / admin")
+System_Ext(devices, "IoT-устройства", "Источники событий")
+Person(operator, "Оператор", "Отправляет команды роутерам")
+System_Ext(routers, "Роутеры", "Получают и подтверждают команды")
+
+Container(keycloak, "Keycloak", "OAuth2 / OIDC", "Выдача и проверка JWT")
+
+System_Boundary(iot, "IoT Monitoring Platform") {
+    Container(device_service, "Device Service", "Java, Spring Boot", "REST API реестра устройств")
+    Container(event_collector, "Event Collector", "Java, Spring Boot, Reactor", "Сохраняет события, публикует новые устройства")
+    Container(device_collector, "Device Collector", "Java, Spring Boot, Reactor", "Пишет устройства в шардированный PostgreSQL")
+    Container(failed_events, "Failed Events Processor", "Java, Spring Boot", "Сохраняет ошибки обработки")
+    Container(router_manager, "Router Manager", "Go, gRPC", "Очередь команд с подтверждением и TTL")
+
+    ContainerQueue(kafka, "Kafka + Schema Registry", "Avro", "events, devices, devices-delete, dlt-topic")
+    ContainerDb(redis, "Redis", "Cache", "Кэш устройств")
+    ContainerDb(cassandra, "Cassandra", "NoSQL", "События по device_id")
+    ContainerDb(minio, "MinIO", "S3", "Ошибки DLT в JSON")
+    ContainerDb(pg_rm, "PostgreSQL", "router_manager", "Роутеры и команды")
+
+    Boundary(pg_cluster, "Device DB Cluster") {
+        ContainerDb(shard0, "Shard 0", "PostgreSQL master + replica", "hash(device_id) % 2 = 0, репликация WAL")
+        ContainerDb(shard1, "Shard 1", "PostgreSQL master + replica", "hash(device_id) % 2 = 1, репликация WAL")
+    }
+}
+
+Rel(client, device_service, "CRUD", "REST + JWT")
+Rel_L(device_service, keycloak, "Проверка JWT", "JWK")
+Rel(device_service, redis, "Cache-aside")
+Rel(device_service, kafka, "devices / devices-delete", "Avro")
+Rel(device_service, shard0, "Чтение с реплик")
+Rel(device_service, shard1, "Чтение с реплик")
+
+Rel(devices, kafka, "events", "Avro")
+Rel(kafka, event_collector, "events")
+Rel(event_collector, cassandra, "Сохраняет события")
+Rel(event_collector, kafka, "Новые устройства → devices")
+
+Rel(kafka, device_collector, "devices / devices-delete", "batch, manual ack")
+Rel(device_collector, shard0, "Запись в master", "ShardingSphere JDBC")
+Rel(device_collector, shard1, "Запись в master", "ShardingSphere JDBC")
+
+Rel(kafka, failed_events, "dlt-topic")
+Rel(failed_events, minio, "JSON")
+
+Rel(operator, router_manager, "SendCommand", "gRPC")
+Rel(routers, router_manager, "Poll / Ack", "gRPC")
+Rel(router_manager, pg_rm, "Команды", "pgx")
+
+@enduml
